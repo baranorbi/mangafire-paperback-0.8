@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MangaFire.to - Paperback 0.8</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0f0f11;
+            color: #fff;
+            font-family: 'Inter', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            max-width: 420px;
+            padding: 40px 20px;
+        }
+        .icon {
+            width: 90px;
+            height: 90px;
+            border-radius: 18px;
+            margin: 0 auto 24px;
+            background: #1a1a1f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .icon img {
+            width: 70px;
+            height: 70px;
+        }
+        h1 {
+            font-size: 28px;
+            margin: 0 0 8px;
+            font-weight: 600;
+        }
+        p.subtitle {
+            color: #aaa;
+            margin-bottom: 40px;
+            font-size: 17px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: #00d4ff;
+            color: #000;
+            font-weight: 600;
+            font-size: 18px;
+            padding: 16px 32px;
+            border-radius: 9999px;
+            text-decoration: none;
+            transition: all 0.2s;
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0, 212, 255, 0.4);
+        }
+        .info {
+            margin-top: 50px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <img src="https://mangafire.to/favicon.ico" alt="MangaFire">
+        </div>
+        <h1>MangaFire.to</h1>
+        <p class="subtitle">Fuente oficial para Paperback 0.8</p>
+        
+        <a href="paperback://add-repo?url=https://TU-USUARIO.github.io/mangafire-paperback-0.8/" 
+           class="btn">
+            <span>Añadir a Paperback</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+        </a>
+
+        <div class="info">
+            Incluye: <strong>MangaFire</strong><br>
+            Versión: 1.2.0<br><br>
+            <small>Una vez añadido, ve a Ajustes → Extensions y activa MangaFire</small>
+        </div>
+    </div>
+</body>
+</html>

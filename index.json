@@ -4,8 +4,8 @@
     {
       "id": "mangafire",
       "name": "MangaFire",
-      "file": "mangafire.js",
-      "icon": "https://github.com/baranorbi.png"
+      "version": "1.0.1",
+      "icon": "icon.png"
     }
   ]
 }

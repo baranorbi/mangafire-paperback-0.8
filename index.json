@@ -4,7 +4,8 @@
     {
       "id": "mangafire",
       "name": "MangaFire",
-      "file": "mangafire.js"
+      "file": "mangafire.js",
+      "icon": "icon.png"
     }
   ]
 }

@@ -9,7 +9,8 @@
             "website": "https://mangafire.to",
             "version": "1.0.1",
             "tags": [],
-            "websiteBaseURL": "https://mangafire.to"
+            "websiteBaseURL": "https://mangafire.to",
+            "icon": "icon.png"
         }
     ]
 }

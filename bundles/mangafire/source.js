@@ -114,12 +114,12 @@ const DEFAULT_HEADERS = {
 };
 
 exports.mangafireInfo = {
-    version: '1.0.4',
+    version: '1.0.5',
     name: 'MangaFire',
     icon: 'icon.png',
     author: 'nahamah',
     authorWebsite: 'https://github.com/baranorbi',
-    description: 'MangaFire v1.0.4 (REST API) by nahamah',
+    description: 'MangaFire v1.0.5 (REST API) by nahamah',
     contentRating: types_1.ContentRating.MATURE,
     websiteBaseURL: BASE_URL,
     sourceTags: [],
@@ -130,8 +130,8 @@ class MangaFire extends types_1.Source {
     constructor() {
         super(...arguments);
         this.requestManager = App.createRequestManager({
-            requestsPerSecond: 3,
-            requestTimeout: 20000,
+            requestsPerSecond: 5,
+            requestTimeout: 30000,
         });
     }
 
@@ -323,23 +323,64 @@ class MangaFire extends types_1.Source {
 
     async getChapters(mangaId) {
         const cleanId = mangaId.replace(/^\/manga\//, '').replace(/^\/title\//, '');
-        const url = `${BASE_URL}/api/titles/${cleanId}/chapters`;
+        const API_HEADERS = {
+            ...DEFAULT_HEADERS,
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        };
 
-        const request = App.createRequest({
+        let langParam = '&language=en';
+        let url = `${BASE_URL}/api/titles/${cleanId}/chapters?limit=100&page=1${langParam}`;
+        let request = App.createRequest({
             url: url,
             method: 'GET',
-            headers: {
-                ...DEFAULT_HEADERS,
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            headers: API_HEADERS
         });
 
-        const response = await this.requestManager.schedule(request, 1);
-        const json = this.parseJsonResponse(response.data);
-        const items = Array.isArray(json?.items) ? json.items : [];
+        let response = await this.requestManager.schedule(request, 1);
+        let json = this.parseJsonResponse(response.data);
+        let items = Array.isArray(json?.items) ? [...json.items] : [];
 
-        return items.map(item => {
+        if (items.length === 0) {
+            langParam = '';
+            url = `${BASE_URL}/api/titles/${cleanId}/chapters?limit=100&page=1`;
+            request = App.createRequest({
+                url: url,
+                method: 'GET',
+                headers: API_HEADERS
+            });
+            response = await this.requestManager.schedule(request, 1);
+            json = this.parseJsonResponse(response.data);
+            items = Array.isArray(json?.items) ? [...json.items] : [];
+        }
+
+        const lastPage = json?.meta?.lastPage || 1;
+        if (lastPage > 1) {
+            const maxPage = Math.min(lastPage, 25);
+            const pagePromises = [];
+            for (let p = 2; p <= maxPage; p++) {
+                const pageUrl = `${BASE_URL}/api/titles/${cleanId}/chapters?limit=100&page=${p}${langParam}`;
+                const pageReq = App.createRequest({
+                    url: pageUrl,
+                    method: 'GET',
+                    headers: API_HEADERS
+                });
+                pagePromises.push(
+                    this.requestManager.schedule(pageReq, 1)
+                        .then(res => {
+                            const pageJson = this.parseJsonResponse(res.data);
+                            return Array.isArray(pageJson?.items) ? pageJson.items : [];
+                        })
+                        .catch(() => [])
+                );
+            }
+            const restPages = await Promise.all(pagePromises);
+            for (const pageItems of restPages) {
+                items.push(...pageItems);
+            }
+        }
+
+        const chapters = items.map(item => {
             const chapNum = Number(item.number) || 0;
             return App.createChapter({
                 id: String(item.id),
@@ -348,6 +389,8 @@ class MangaFire extends types_1.Source {
                 langCode: item.language || 'en',
             });
         });
+
+        return chapters;
     }
 
     async getChapterDetails(mangaId, chapterId) {

@@ -10,7 +10,8 @@
             "version": "1.0.1",
             "tags": [],
             "websiteBaseURL": "https://mangafire.to",
-            "icon": "icon.png"
+            "icon": "icon.png",
+            "file": "mangafire.js"
         }
     ]
 }

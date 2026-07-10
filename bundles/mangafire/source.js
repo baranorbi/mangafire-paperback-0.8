@@ -114,12 +114,12 @@ const DEFAULT_HEADERS = {
 };
 
 exports.mangafireInfo = {
-    version: '1.0.2',
+    version: '1.0.3',
     name: 'MangaFire',
     icon: 'icon.png',
     author: 'nahamah',
     authorWebsite: 'https://github.com/baranorbi',
-    description: 'MangaFire source for Paperback 0.8',
+    description: 'MangaFire v1.0.3 by nahamah',
     contentRating: types_1.ContentRating.MATURE,
     websiteBaseURL: BASE_URL,
     sourceTags: [],
@@ -207,18 +207,21 @@ class MangaFire extends types_1.Source {
             App.createHomeSection({
                 id: 'trending',
                 title: 'Trending Manga',
+                items: [],
                 containsMoreItems: true,
                 type: 'singleRowNormal'
             }),
             App.createHomeSection({
                 id: 'recently_updated',
                 title: 'Recently Updated',
+                items: [],
                 containsMoreItems: true,
                 type: 'singleRowNormal'
             }),
             App.createHomeSection({
                 id: 'new_releases',
                 title: 'New Releases',
+                items: [],
                 containsMoreItems: true,
                 type: 'singleRowNormal'
             })

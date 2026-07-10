@@ -16,9 +16,9 @@ class MangaFire extends Source {
     get name() { return "MangaFire"; }
     get icon() { return "https://mangafire.to/favicon.ico"; }
     get version() { return "1.0.1"; }
-    get author() { return "Grok"; }
+    get author() { return "nahamah"; }
     get website() { return BASE_URL; }
-    get language() { return "es"; }
+    get language() { return "en"; }
 
     async getCloudflareBypassRequestAsync() {
         return App.createRequest({
@@ -79,14 +79,14 @@ class MangaFire extends Source {
         const response = await this.requestManager.schedule(request, 1);
         const $ = this.cheerio.load(response.data);
 
-        const title = $('h1').first().text().trim() 
-            || $('meta[property="og:title"]').attr('content')?.replace(/ - MangaFire.*/i, '').trim() 
+        const title = $('h1').first().text().trim()
+            || $('meta[property="og:title"]').attr('content')?.replace(/ - MangaFire.*/i, '').trim()
             || '';
-        const image = $('img.cover, .cover img, .poster img').attr('src') 
-            || $('meta[property="og:image"]').attr('content') 
+        const image = $('img.cover, .cover img, .poster img').attr('src')
+            || $('meta[property="og:image"]').attr('content')
             || '';
-        const description = $('.description, .summary, #synopsis, .info .modal-content').text().trim() 
-            || $('meta[property="og:description"]').attr('content') 
+        const description = $('.description, .summary, #synopsis, .info .modal-content').text().trim()
+            || $('meta[property="og:description"]').attr('content')
             || '';
 
         return App.createSourceManga({

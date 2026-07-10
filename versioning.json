@@ -1,0 +1,15 @@
+{
+    "buildTime": "2024-01-01T00:00:00.000Z",
+    "sources": [
+        {
+            "id": "mangafire",
+            "name": "MangaFire",
+            "author": "nahamah",
+            "desc": "MangaFire source for Paperback 0.8",
+            "website": "https://mangafire.to",
+            "version": "1.0.1",
+            "tags": [],
+            "websiteBaseURL": "https://mangafire.to"
+        }
+    ]
+}

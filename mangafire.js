@@ -14,7 +14,7 @@ class MangaFire extends Source {
 
     get id() { return "mangafire"; }
     get name() { return "MangaFire"; }
-    get icon() { return "https://mangafire.to/favicon.ico"; }
+    get icon() { return "https://github.com/baranorbi.png"; }
     get version() { return "1.0.1"; }
     get author() { return "nahamah"; }
     get website() { return BASE_URL; }

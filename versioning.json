@@ -10,7 +10,7 @@
             "version": "1.0.1",
             "tags": [],
             "websiteBaseURL": "https://mangafire.to",
-            "icon": "icon.png",
+            "icon": "https://github.com/baranorbi.png",
             "file": "mangafire.js"
         }
     ]

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log("=== BUILDING MANGAFIRE EXTENSION v1.0.6 ===");
+console.log("=== BUILDING MANGAFIRE EXTENSION v1.0.7 ===");
 
 // Load polyfill code
 const polyfillCodeRaw = fs.readFileSync('mangafire/polyfill.js', 'utf8');
@@ -122,69 +122,81 @@ const DEFAULT_HEADERS = {
     'Referer': \`\${BASE_URL}/\`
 };
 
-// --- EMBEDDED VRF GENERATOR ---
+// --- SAFE EMBEDDED VRF GENERATOR ---
 (function() {
-    if (typeof globalThis.navigator === 'undefined') {
-        delete globalThis.navigator;
-        globalThis.navigator = {
-            appCodeName: 'Mozilla',
-            appName: 'Netscape',
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-            platform: 'Win32',
-            vendor: 'Google Inc.',
-            language: 'en-US',
-            languages: ['en-US', 'en'],
-            onLine: true,
-            cookieEnabled: true,
-            hardwareConcurrency: 8,
-            deviceMemory: 8,
-            maxTouchPoints: 0
-        };
-    }
-    if (typeof globalThis.window === 'undefined') {
-        globalThis.window = globalThis;
-        globalThis.self = globalThis;
-    }
-    if (typeof globalThis.document === 'undefined') {
-        var mockElem = {
-            appendChild: function() { return mockElem; },
-            removeChild: function() { return mockElem; },
-            setAttribute: function() {},
-            getAttribute: function() { return null; },
-            style: {},
-            getContext: function() { return { fillText: function() {}, measureText: function() { return { width: 10 }; } }; }
-        };
-        globalThis.document = {
-            createElement: function() { return mockElem; },
-            getElementsByTagName: function() { return [mockElem]; },
-            querySelector: function() { return mockElem; },
-            querySelectorAll: function() { return []; },
-            head: mockElem,
-            body: mockElem,
-            cookie: '',
-            title: 'MangaFire',
-            referrer: 'https://mangafire.to/'
-        };
-    }
-    if (typeof globalThis.location === 'undefined') {
-        globalThis.location = {
-            href: 'https://mangafire.to/filter',
-            origin: 'https://mangafire.to',
-            protocol: 'https:',
-            host: 'mangafire.to',
-            hostname: 'mangafire.to',
-            port: '',
-            pathname: '/filter',
-            search: '',
-            hash: ''
-        };
-    }
-    if (!globalThis.__config) {
-        globalThis.__config = "XRiqHvYHPlx1ySdFkwsKlcW8THf45jHdInyp-IvPerjW16Ji2F43iB6VjIvpdYjGnCxdXnjvU5Xqem6XqnjVuTmE_vsn9i50rZRu0l6rxBuc1832D4NfjS9LfBtpPFw12w";
-    }
-    if (!globalThis.__build) {
-        globalThis.__build = "8aa2af0dc56f9a6a14c239613372a274";
-    }
+    try {
+        if (typeof globalThis.navigator === 'undefined') {
+            try {
+                globalThis.navigator = {
+                    appCodeName: 'Mozilla',
+                    appName: 'Netscape',
+                    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    platform: 'Win32',
+                    vendor: 'Google Inc.',
+                    language: 'en-US'
+                };
+            } catch(e) {}
+        } else {
+            try {
+                if (!globalThis.navigator.appCodeName) globalThis.navigator.appCodeName = 'Mozilla';
+                if (!globalThis.navigator.userAgent) globalThis.navigator.userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+            } catch(e) {}
+        }
+    } catch(e) {}
+
+    try {
+        if (typeof globalThis.window === 'undefined') globalThis.window = globalThis;
+        if (typeof globalThis.self === 'undefined') globalThis.self = globalThis;
+    } catch(e) {}
+
+    try {
+        if (typeof globalThis.document === 'undefined') {
+            var mockElem = {
+                appendChild: function() { return mockElem; },
+                removeChild: function() { return mockElem; },
+                setAttribute: function() {},
+                getAttribute: function() { return null; },
+                style: {},
+                getContext: function() { return { fillText: function() {}, measureText: function() { return { width: 10 }; } }; }
+            };
+            globalThis.document = {
+                createElement: function() { return mockElem; },
+                getElementsByTagName: function() { return [mockElem]; },
+                querySelector: function() { return mockElem; },
+                querySelectorAll: function() { return []; },
+                head: mockElem,
+                body: mockElem,
+                cookie: '',
+                title: 'MangaFire',
+                referrer: 'https://mangafire.to/'
+            };
+        }
+    } catch(e) {}
+
+    try {
+        if (typeof globalThis.location === 'undefined') {
+            globalThis.location = {
+                href: 'https://mangafire.to/filter',
+                origin: 'https://mangafire.to',
+                protocol: 'https:',
+                host: 'mangafire.to',
+                hostname: 'mangafire.to',
+                port: '',
+                pathname: '/filter',
+                search: '',
+                hash: ''
+            };
+        }
+    } catch(e) {}
+
+    try {
+        if (!globalThis.__config) {
+            globalThis.__config = "XRiqHvYHPlx1ySdFkwsKlcW8THf45jHdInyp-IvPerjW16Ji2F43iB6VjIvpdYjGnCxdXnjvU5Xqem6XqnjVuTmE_vsn9i50rZRu0l6rxBuc1832D4NfjS9LfBtpPFw12w";
+        }
+        if (!globalThis.__build) {
+            globalThis.__build = "8aa2af0dc56f9a6a14c239613372a274";
+        }
+    } catch(e) {}
 
     if (typeof globalThis.extendClient !== 'function') {
         try {
@@ -226,12 +238,12 @@ const DEFAULT_HEADERS = {
 })();
 
 exports.mangafireInfo = {
-    version: '1.0.6',
+    version: '1.0.7',
     name: 'MangaFire',
     icon: 'icon.png',
     author: 'nahamah',
     authorWebsite: 'https://github.com/baranorbi',
-    description: 'MangaFire v1.0.6 (VRF API) by nahamah',
+    description: 'MangaFire v1.0.7 (VRF API) by nahamah',
     contentRating: types_1.ContentRating.MATURE,
     websiteBaseURL: BASE_URL,
     sourceTags: [],
@@ -251,7 +263,9 @@ class MangaFire extends types_1.Source {
         params = params || {};
         var vrf = '';
         if (typeof globalThis._getMangaFireVrf === 'function') {
-            vrf = globalThis._getMangaFireVrf(path, params);
+            try {
+                vrf = globalThis._getMangaFireVrf(path, params);
+            } catch(e) {}
         }
         var queryParts = [];
         for (var key in params) {
@@ -542,7 +556,7 @@ exports.mangafire = MangaFire;
 fs.writeFileSync('mangafire/source.js', sourceJsCode);
 fs.writeFileSync('bundles/mangafire/source.js', sourceJsCode);
 
-fs.mkdirSync('bundles/mangafire/1.0.6', { recursive: true });
-fs.writeFileSync('bundles/mangafire/1.0.6/source.js', sourceJsCode);
+fs.mkdirSync('bundles/mangafire/1.0.7', { recursive: true });
+fs.writeFileSync('bundles/mangafire/1.0.7/source.js', sourceJsCode);
 
-console.log("Updated mangafire/source.js and bundles/mangafire v1.0.6");
+console.log("Successfully built mangafire/source.js and bundles/mangafire v1.0.7");

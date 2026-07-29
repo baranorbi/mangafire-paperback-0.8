@@ -1,11 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log("=== BUILDING MANGAFIRE EXTENSION v1.0.10 ===");
-
-// Load polyfill code
-const polyfillCodeRaw = fs.readFileSync('mangafire/polyfill.js', 'utf8');
-const polyfillCodeClean = polyfillCodeRaw.replace(/export\s*\{[^}]*\};?/g, '');
+console.log("=== BUILDING MANGAFIRE EXTENSION v1.0.11 (CLEAN LIGHTWEIGHT UMD) ===");
 
 const sourceJsCode = `(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Sources = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
@@ -122,162 +118,13 @@ const DEFAULT_HEADERS = {
     'Referer': \`\${BASE_URL}/\`
 };
 
-// --- SAFE EMBEDDED VRF GENERATOR v1.0.10 ---
-(function() {
-    var setTimeout = function() { return 0; };
-    var clearTimeout = function() {};
-    var setInterval = function() { return 0; };
-    var clearInterval = function() {};
-
-    var window = globalThis;
-    var self = globalThis;
-    var global = globalThis;
-
-    if (typeof globalThis.atob === 'undefined') {
-        var b64chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-        globalThis.atob = function(input) {
-            var str = String(input).replace(/=+$/, '');
-            var output = '';
-            if (str.length % 4 === 1) throw new Error("'atob' failed");
-            for (var bc = 0, bs, buffer, idx = 0; buffer = str.charAt(idx++); ~buffer && (bs = bc % 4 ? bs * 64 + buffer : buffer, bc++ % 4) ? output += String.fromCharCode(255 & bs >> (-2 * bc & 6)) : 0) {
-                buffer = b64chars.indexOf(buffer);
-            }
-            return output;
-        };
-    }
-
-    if (typeof globalThis.btoa === 'undefined') {
-        var b64chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-        globalThis.btoa = function(input) {
-            var str = String(input);
-            var output = '';
-            for (var block, charCode, idx = 0, map = b64chars; str.charAt(idx += 3/4); output += map.charAt(63 & block >> 8 - idx % 1 * 8)) {
-                charCode = str.charCodeAt(idx);
-                if (charCode > 255) throw new Error("'btoa' failed");
-                block = block << 8 | charCode;
-            }
-            return output;
-        };
-    }
-
-    if (typeof globalThis.TextEncoder === 'undefined') {
-        globalThis.TextEncoder = function() {};
-        globalThis.TextEncoder.prototype.encode = function(str) {
-            var buf = new Uint8Array(str.length);
-            for (var i = 0; i < str.length; i++) {
-                buf[i] = str.charCodeAt(i) & 0xff;
-            }
-            return buf;
-        };
-    }
-
-    if (typeof globalThis.TextDecoder === 'undefined') {
-        globalThis.TextDecoder = function() {};
-        globalThis.TextDecoder.prototype.decode = function(arr) {
-            return String.fromCharCode.apply(null, arr);
-        };
-    }
-
-    var mockElem = {
-        appendChild: function() { return mockElem; },
-        removeChild: function() { return mockElem; },
-        insertBefore: function() { return mockElem; },
-        setAttribute: function() {},
-        getAttribute: function() { return ''; },
-        removeAttribute: function() {},
-        addEventListener: function() {},
-        removeEventListener: function() {},
-        getBoundingClientRect: function() { return { top: 0, left: 0, width: 100, height: 100, right: 100, bottom: 100 }; },
-        style: {},
-        getContext: function() { return { fillText: function() {}, measureText: function() { return { width: 10 }; }, getImageData: function() { return { data: [0,0,0,0] }; } }; },
-        toDataURL: function() { return ''; },
-        click: function() {},
-        focus: function() {},
-        blur: function() {}
-    };
-
-    var document = {
-        createElement: function() { return mockElem; },
-        getElementsByTagName: function() { return [mockElem]; },
-        querySelector: function() { return mockElem; },
-        querySelectorAll: function() { return []; },
-        head: mockElem,
-        body: mockElem,
-        cookie: '',
-        title: 'MangaFire',
-        referrer: 'https://mangafire.to/'
-    };
-
-    var location = {
-        href: 'https://mangafire.to/filter',
-        origin: 'https://mangafire.to',
-        protocol: 'https:',
-        host: 'mangafire.to',
-        hostname: 'mangafire.to',
-        port: '',
-        pathname: '/filter',
-        search: '',
-        hash: ''
-    };
-
-    var navigator = {
-        appCodeName: 'Mozilla',
-        appName: 'Netscape',
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        platform: 'Win32',
-        vendor: 'Google Inc.',
-        language: 'en-US'
-    };
-
-    var __config = "XRiqHvYHPlx1ySdFkwsKlcW8THf45jHdInyp-IvPerjW16Ji2F43iB6VjIvpdYjGnCxdXnjvU5Xqem6XqnjVuTmE_vsn9i50rZRu0l6rxBuc1832D4NfjS9LfBtpPFw12w";
-    var __build = "8aa2af0dc56f9a6a14c239613372a274";
-
-    if (typeof globalThis.extendClient !== 'function') {
-        try {
-            ${polyfillCodeClean}
-        } catch(e) {}
-    }
-
-    var requestInterceptor = null;
-    if (typeof globalThis.extendClient === 'function') {
-        var fakeAxios = {
-            defaults: { headers: { common: {} } },
-            interceptors: {
-                request: { use: function(fn) { requestInterceptor = fn; } },
-                response: { use: function() {} }
-            }
-        };
-        try {
-            globalThis.extendClient(fakeAxios);
-        } catch(e) {}
-    }
-
-    globalThis._getMangaFireVrf = function(urlPath, params) {
-        params = params || {};
-        if (requestInterceptor) {
-            try {
-                var modified = requestInterceptor({ url: urlPath, method: 'get', params: params });
-                if (modified && modified.params && modified.params.vrf) {
-                    return modified.params.vrf;
-                }
-            } catch(e) {}
-        }
-        if (typeof globalThis.getProtectionToken === 'function') {
-            try {
-                return globalThis.getProtectionToken(urlPath, params);
-            } catch(e) {}
-        }
-        return '';
-    };
-})();
-
 exports.mangafireInfo = {
-    version: '1.0.10',
+    version: '1.0.11',
     name: 'MangaFire',
     icon: 'icon.png',
     author: 'nahamah',
     authorWebsite: 'https://github.com/baranorbi',
-    description: 'MangaFire v1.0.10 (VRF API) by nahamah',
+    description: 'MangaFire v1.0.11 for Paperback 0.8',
     contentRating: types_1.ContentRating.MATURE,
     websiteBaseURL: BASE_URL,
     sourceTags: [],
@@ -291,28 +138,6 @@ class MangaFire extends types_1.Source {
             requestsPerSecond: 5,
             requestTimeout: 30000,
         });
-    }
-
-    getVrfUrl(path, params) {
-        params = params || {};
-        var vrf = '';
-        if (typeof globalThis._getMangaFireVrf === 'function') {
-            try {
-                vrf = globalThis._getMangaFireVrf(path, params);
-            } catch(e) {}
-        }
-        var queryParts = [];
-        for (var key in params) {
-            if (params.hasOwnProperty(key) && params[key] !== undefined && params[key] !== null) {
-                queryParts.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
-            }
-        }
-        if (vrf) {
-            queryParts.push('vrf=' + encodeURIComponent(vrf));
-        }
-        var queryString = queryParts.join('&');
-        var apiPath = path.indexOf('/api') === 0 ? path : ('/api' + path);
-        return BASE_URL + apiPath + (queryString ? ('?' + queryString) : '');
     }
 
     async getCloudflareBypassRequestAsync() {
@@ -333,8 +158,12 @@ class MangaFire extends types_1.Source {
 
     parseJsonResponse(data) {
         if (typeof data === 'string') {
+            const trimmed = data.trim();
+            if (!trimmed || trimmed.startsWith('<')) {
+                return null;
+            }
             try {
-                return JSON.parse(data);
+                return JSON.parse(trimmed);
             } catch (error) {
                 return null;
             }
@@ -387,13 +216,13 @@ class MangaFire extends types_1.Source {
         }
 
         const promises = sections.map(async (section) => {
-            let url = this.getVrfUrl('/top-titles');
-            if (section.id === 'recently_updated') url = this.getVrfUrl('/titles', { page: 1 });
-            if (section.id === 'new_releases') url = this.getVrfUrl('/titles', { page: 2 });
+            let path = '/top-titles';
+            if (section.id === 'recently_updated') path = '/titles?page=1';
+            if (section.id === 'new_releases') path = '/titles?page=2';
 
             try {
                 const request = App.createRequest({
-                    url: url,
+                    url: \`\${BASE_URL}/api\${path}\`,
                     method: 'GET',
                     headers: DEFAULT_HEADERS
                 });
@@ -413,12 +242,12 @@ class MangaFire extends types_1.Source {
 
     async getViewMoreItems(homepageSectionId, metadata) {
         const page = metadata?.page ?? 1;
-        let url = this.getVrfUrl('/titles', { page: page });
-        if (homepageSectionId === 'trending') url = this.getVrfUrl('/top-titles');
-        if (homepageSectionId === 'new_releases') url = this.getVrfUrl('/titles', { page: page + 1 });
+        let path = \`/titles?page=\${page}\`;
+        if (homepageSectionId === 'trending') path = '/top-titles';
+        if (homepageSectionId === 'new_releases') path = \`/titles?page=\${page + 1}\`;
 
         const request = App.createRequest({
-            url: url,
+            url: \`\${BASE_URL}/api\${path}\`,
             method: 'GET',
             headers: DEFAULT_HEADERS
         });
@@ -436,13 +265,11 @@ class MangaFire extends types_1.Source {
     async getSearchResults(query, metadata) {
         const page = metadata?.page ?? 1;
         const keyword = query.title || "";
-        const params = { page: page };
-        if (keyword) params.keyword = keyword;
-
-        const url = this.getVrfUrl('/titles', params);
+        let path = \`/titles?page=\${page}\`;
+        if (keyword) path += \`&keyword=\${encodeURIComponent(keyword)}\`;
 
         const request = App.createRequest({
-            url: url,
+            url: \`\${BASE_URL}/api\${path}\`,
             method: 'GET',
             headers: DEFAULT_HEADERS
         });
@@ -459,10 +286,8 @@ class MangaFire extends types_1.Source {
 
     async getMangaDetails(mangaId) {
         const cleanId = mangaId.replace(/^\\/manga\\//, '').replace(/^\\/title\\//, '');
-        const url = this.getVrfUrl('/titles/' + cleanId);
-
         const request = App.createRequest({
-            url: url,
+            url: \`\${BASE_URL}/api/titles/\${cleanId}\`,
             method: 'GET',
             headers: DEFAULT_HEADERS
         });
@@ -492,8 +317,7 @@ class MangaFire extends types_1.Source {
         const cleanId = mangaId.replace(/^\\/manga\\//, '').replace(/^\\/title\\//, '');
 
         let langParam = 'en';
-        let page1Params = { limit: 100, page: 1, language: langParam };
-        let url = this.getVrfUrl('/titles/' + cleanId + '/chapters', page1Params);
+        let url = \`\${BASE_URL}/api/titles/\${cleanId}/chapters?limit=100&page=1&language=\${langParam}\`;
         let request = App.createRequest({
             url: url,
             method: 'GET',
@@ -506,8 +330,7 @@ class MangaFire extends types_1.Source {
 
         if (items.length === 0) {
             langParam = '';
-            page1Params = { limit: 100, page: 1 };
-            url = this.getVrfUrl('/titles/' + cleanId + '/chapters', page1Params);
+            url = \`\${BASE_URL}/api/titles/\${cleanId}/chapters?limit=100&page=1\`;
             request = App.createRequest({
                 url: url,
                 method: 'GET',
@@ -523,9 +346,8 @@ class MangaFire extends types_1.Source {
             const maxPage = Math.min(lastPage, 25);
             const pagePromises = [];
             for (let p = 2; p <= maxPage; p++) {
-                const pParams = { limit: 100, page: p };
-                if (langParam) pParams.language = langParam;
-                const pageUrl = this.getVrfUrl('/titles/' + cleanId + '/chapters', pParams);
+                let pageUrl = \`\${BASE_URL}/api/titles/\${cleanId}/chapters?limit=100&page=\${p}\`;
+                if (langParam) pageUrl += \`&language=\${langParam}\`;
                 const pageReq = App.createRequest({
                     url: pageUrl,
                     method: 'GET',
@@ -560,10 +382,8 @@ class MangaFire extends types_1.Source {
     }
 
     async getChapterDetails(mangaId, chapterId) {
-        const url = this.getVrfUrl('/chapters/' + chapterId);
-
         const request = App.createRequest({
-            url: url,
+            url: \`\${BASE_URL}/api/chapters/\${chapterId}\`,
             method: 'GET',
             headers: DEFAULT_HEADERS
         });
@@ -600,8 +420,8 @@ for (const f of filesToUpdate) {
     fs.writeFileSync(f, sourceJsCode);
 }
 
-// Create version specific directories
-const versions = ['1.0.1', '1.0.2', '1.0.3', '1.0.4', '1.0.5', '1.0.6', '1.0.7', '1.0.8', '1.0.9', '1.0.10'];
+// Create version specific directories up to 1.0.11
+const versions = ['1.0.1', '1.0.2', '1.0.3', '1.0.4', '1.0.5', '1.0.6', '1.0.7', '1.0.8', '1.0.9', '1.0.10', '1.0.11'];
 for (const v of versions) {
     const dir = path.join('bundles/mangafire', v);
     fs.mkdirSync(dir, { recursive: true });
@@ -610,4 +430,4 @@ for (const v of versions) {
     fs.writeFileSync(path.join(dir, 'includes.js'), sourceJsCode);
 }
 
-console.log("Successfully built mangafire extension v1.0.10 across ALL bundle entry points!");
+console.log("Successfully built mangafire extension v1.0.11!");

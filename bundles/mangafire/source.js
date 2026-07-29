@@ -113,8 +113,13 @@ const DEFAULT_HEADERS = {
     'Referer': `${BASE_URL}/`
 };
 
-// --- SAFE EMBEDDED VRF GENERATOR v1.0.8 ---
+// --- SAFE EMBEDDED VRF GENERATOR v1.0.9 ---
 (function() {
+    var setTimeout = function() { return 0; };
+    var clearTimeout = function() {};
+    var setInterval = function() { return 0; };
+    var clearInterval = function() {};
+
     var window = globalThis;
     var self = globalThis;
     var global = globalThis;
@@ -137,8 +142,8 @@ const DEFAULT_HEADERS = {
         globalThis.btoa = function(input) {
             var str = String(input);
             var output = '';
-            for (var block, charCode, idx = 0, map = b64chars; str.charAt(idx | 0) || (map = '=', idx % 1); output += map.charAt(63 & block >> 8 - idx % 1 * 8)) {
-                charCode = str.charCodeAt(idx += 3/4);
+            for (var block, charCode, idx = 0, map = b64chars; str.charAt(idx += 3/4); output += map.charAt(63 & block >> 8 - idx % 1 * 8)) {
+                charCode = str.charCodeAt(idx);
                 if (charCode > 255) throw new Error("'btoa' failed");
                 block = block << 8 | charCode;
             }
@@ -258,12 +263,12 @@ const DEFAULT_HEADERS = {
 })();
 
 exports.mangafireInfo = {
-    version: '1.0.8',
+    version: '1.0.9',
     name: 'MangaFire',
     icon: 'icon.png',
     author: 'nahamah',
     authorWebsite: 'https://github.com/baranorbi',
-    description: 'MangaFire v1.0.8 (VRF API) by nahamah',
+    description: 'MangaFire v1.0.9 (VRF API) by nahamah',
     contentRating: types_1.ContentRating.MATURE,
     websiteBaseURL: BASE_URL,
     sourceTags: [],

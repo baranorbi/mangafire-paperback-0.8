@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log("=== BUILDING MANGAFIRE EXTENSION v1.0.9 ===");
+console.log("=== BUILDING MANGAFIRE EXTENSION v1.0.10 ===");
 
 // Load polyfill code
 const polyfillCodeRaw = fs.readFileSync('mangafire/polyfill.js', 'utf8');
@@ -122,7 +122,7 @@ const DEFAULT_HEADERS = {
     'Referer': \`\${BASE_URL}/\`
 };
 
-// --- SAFE EMBEDDED VRF GENERATOR v1.0.9 ---
+// --- SAFE EMBEDDED VRF GENERATOR v1.0.10 ---
 (function() {
     var setTimeout = function() { return 0; };
     var clearTimeout = function() {};
@@ -272,12 +272,12 @@ const DEFAULT_HEADERS = {
 })();
 
 exports.mangafireInfo = {
-    version: '1.0.9',
+    version: '1.0.10',
     name: 'MangaFire',
     icon: 'icon.png',
     author: 'nahamah',
     authorWebsite: 'https://github.com/baranorbi',
-    description: 'MangaFire v1.0.9 (VRF API) by nahamah',
+    description: 'MangaFire v1.0.10 (VRF API) by nahamah',
     contentRating: types_1.ContentRating.MATURE,
     websiteBaseURL: BASE_URL,
     sourceTags: [],
@@ -586,11 +586,28 @@ exports.mangafire = MangaFire;
 },{}]},{},[7])(7)
 });`;
 
-// Write to source files
-fs.writeFileSync('mangafire/source.js', sourceJsCode);
-fs.writeFileSync('bundles/mangafire/source.js', sourceJsCode);
+// Write to all source file locations in root and bundles
+const filesToUpdate = [
+    'mangafire/source.js',
+    'mangafire/mangafire.js',
+    'mangafire/includes.js',
+    'bundles/mangafire/source.js',
+    'bundles/mangafire/mangafire.js',
+    'bundles/mangafire/includes.js'
+];
 
-fs.mkdirSync('bundles/mangafire/1.0.9', { recursive: true });
-fs.writeFileSync('bundles/mangafire/1.0.9/source.js', sourceJsCode);
+for (const f of filesToUpdate) {
+    fs.writeFileSync(f, sourceJsCode);
+}
 
-console.log("Successfully built mangafire/source.js and bundles/mangafire v1.0.9");
+// Create version specific directories
+const versions = ['1.0.1', '1.0.2', '1.0.3', '1.0.4', '1.0.5', '1.0.6', '1.0.7', '1.0.8', '1.0.9', '1.0.10'];
+for (const v of versions) {
+    const dir = path.join('bundles/mangafire', v);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'source.js'), sourceJsCode);
+    fs.writeFileSync(path.join(dir, 'mangafire.js'), sourceJsCode);
+    fs.writeFileSync(path.join(dir, 'includes.js'), sourceJsCode);
+}
+
+console.log("Successfully built mangafire extension v1.0.10 across ALL bundle entry points!");

@@ -113,7 +113,7 @@ const DEFAULT_HEADERS = {
     'Referer': `${BASE_URL}/`
 };
 
-// --- SAFE EMBEDDED VRF GENERATOR v1.0.9 ---
+// --- SAFE EMBEDDED VRF GENERATOR v1.0.10 ---
 (function() {
     var setTimeout = function() { return 0; };
     var clearTimeout = function() {};
@@ -263,12 +263,12 @@ const DEFAULT_HEADERS = {
 })();
 
 exports.mangafireInfo = {
-    version: '1.0.9',
+    version: '1.0.10',
     name: 'MangaFire',
     icon: 'icon.png',
     author: 'nahamah',
     authorWebsite: 'https://github.com/baranorbi',
-    description: 'MangaFire v1.0.9 (VRF API) by nahamah',
+    description: 'MangaFire v1.0.10 (VRF API) by nahamah',
     contentRating: types_1.ContentRating.MATURE,
     websiteBaseURL: BASE_URL,
     sourceTags: [],

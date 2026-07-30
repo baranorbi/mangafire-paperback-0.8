@@ -11,13 +11,40 @@ try {
     console.error("Browserify bundling failed, falling back to raw source_code.js", e);
 }
 
-const bundledCode = fs.existsSync(tempBundlePath) 
+let bundledCode = fs.existsSync(tempBundlePath) 
     ? fs.readFileSync(tempBundlePath, 'utf8') 
     : fs.readFileSync('source_code.js', 'utf8');
 
 if (fs.existsSync(tempBundlePath)) {
     fs.unlinkSync(tempBundlePath);
 }
+
+// Wrap bundle with top-level variable declarations and global export assignments for JavaScriptCore
+const header = `var exports = typeof exports !== "undefined" ? exports : {};
+var module = typeof module !== "undefined" ? module : { exports: exports };
+var Sources = typeof Sources !== "undefined" ? Sources : {};
+`;
+
+const footer = `
+if (typeof globalThis !== "undefined") {
+    if (typeof Sources !== "undefined") {
+        if (Sources.mangafire) globalThis.mangafire = Sources.mangafire;
+        if (Sources.mangafireInfo) globalThis.mangafireInfo = Sources.mangafireInfo;
+    }
+    if (typeof exports !== "undefined") {
+        globalThis.exports = exports;
+        if (exports.mangafire) globalThis.mangafire = exports.mangafire;
+        if (exports.mangafireInfo) globalThis.mangafireInfo = exports.mangafireInfo;
+    }
+}
+if (typeof window !== "undefined") {
+    if (typeof exports !== "undefined") window.exports = exports;
+    if (typeof mangafire !== "undefined") window.mangafire = mangafire;
+    if (typeof mangafireInfo !== "undefined") window.mangafireInfo = mangafireInfo;
+}
+`;
+
+bundledCode = header + bundledCode + footer;
 
 const filesToUpdate = [
     'mangafire.js',

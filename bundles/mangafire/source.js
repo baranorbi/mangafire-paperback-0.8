@@ -7,6 +7,12 @@ const DEFAULT_HEADERS = {
     'Referer': `${BASE_URL}/`
 };
 
+const AJAX_HEADERS = {
+    ...DEFAULT_HEADERS,
+    'X-Requested-With': 'XMLHttpRequest',
+    'Accept': '*/*'
+};
+
 const mangafireInfo = {
     version: '1.0.12',
     name: 'MangaFire',
@@ -63,9 +69,9 @@ class MangaFire extends Source {
         const mangas = [];
         const seenIds = new Set();
 
-        $("div.unit, .manga-item, .card, div.original.card-lg div.unit, .inner").each((_, element) => {
+        $("div.unit, .manga-item, .card, div.original.card-lg div.unit, .inner, .item").each((_, element) => {
             const $el = $(element);
-            const titleEl = $el.find("div.info > a, .detail .title a, a.title, h3 a, .info > div > a, a[href*='/manga/']").last();
+            const titleEl = $el.find("div.info > a, .detail .title a, a.title, h3 a, .info > div > a, a[href*='/manga/'], a[href*='/title/']").last();
             let title = titleEl.text().trim() || $el.find("a").attr("title") || "";
             if (!title) {
                 title = $el.find("a").text().trim();
@@ -79,7 +85,7 @@ class MangaFire extends Source {
             const idMatch = href.match(/\/(?:manga|title)\/([^\/?#]+)/);
             const id = idMatch ? idMatch[1] : href.split("/").filter(Boolean).pop() || "";
             
-            let image = $el.find("img").attr("src") || $el.find("img").attr("data-src") || "";
+            let image = $el.find("img").attr("src") || $el.find("img").attr("data-src") || $el.find("img").attr("data-lazy") || "";
 
             if (title && id && !seenIds.has(id)) {
                 seenIds.add(id);
@@ -225,11 +231,11 @@ class MangaFire extends Source {
             || $('meta[property="og:title"]').attr('content')?.replace(/ - MangaFire.*/i, '').trim()
             || cleanId;
             
-        const image = $('img.cover, .cover img, .poster img').attr('src')
+        const image = $('img.cover, .cover img, .poster img, .manga-poster img').attr('src')
             || $('meta[property="og:image"]').attr('content')
             || '';
             
-        const description = $('.description, .summary, #synopsis, .info .modal-content').text().trim()
+        const description = $('.description, .summary, #synopsis, .info .modal-content, .info .description').text().trim()
             || $('meta[property="og:description"]').attr('content')
             || '';
 
@@ -240,13 +246,13 @@ class MangaFire extends Source {
         }
 
         const authors = [];
-        $('.info a[href*="/author/"], .info span:contains("Author") + a').each((_, el) => {
+        $('.info a[href*="/author/"], .info span:contains("Author") + a, .info a[href*="/staff/"]').each((_, el) => {
             const authorText = $(el).text().trim();
             if (authorText && !authors.includes(authorText)) authors.push(authorText);
         });
 
         const tags = [];
-        $('.info a[href*="/genre/"]').each((_, el) => {
+        $('.info a[href*="/genre/"], .info a[href*="/type/"]').each((_, el) => {
             const tagText = $(el).text().trim();
             const tagId = $(el).attr('href')?.split('/').pop() || tagText;
             if (tagText) {
@@ -273,6 +279,35 @@ class MangaFire extends Source {
         });
     }
 
+    parseChapterElements($, containerSelector = "body") {
+        const chapters = [];
+        const seenChapters = new Set();
+
+        $(containerSelector).find("a[href*='/read/'], .list-chapter a, ul.chapters a, li.chapter-item a, div.tab-content a").each((_, el) => {
+            const $el = $(el);
+            const href = $el.attr("href") || "";
+            const text = $el.text().trim() || $el.attr("title") || "";
+            
+            const numMatch = text.match(/chapter\s*(\d+\.?\d*)/i) || text.match(/\bch(?:apter)?\.?\s*(\d+\.?\d*)/i) || text.match(/(\d+\.?\d*)/);
+            const chapNum = numMatch ? parseFloat(numMatch[1]) : 0;
+            
+            let chapId = href;
+            if (chapId.startsWith('/')) chapId = chapId.substring(1);
+            
+            if (href && href.includes('/read/') && !seenChapters.has(chapId)) {
+                seenChapters.add(chapId);
+                chapters.push(App.createChapter({
+                    id: chapId,
+                    mangaId: chapId.split('/')[1] || '',
+                    name: text || `Chapter ${chapNum}`,
+                    chapNum: chapNum,
+                    langCode: 'en'
+                }));
+            }
+        });
+        return chapters;
+    }
+
     async getChapters(mangaId) {
         const cleanId = mangaId.replace(/^\/(?:manga|title)\//, '');
         const url = `${BASE_URL}/manga/${cleanId}`;
@@ -286,59 +321,44 @@ class MangaFire extends Source {
         const response = await this.requestManager.schedule(request, 1);
         this.checkCloudflareResponse(response.data);
 
-        const $ = this.cheerio.load(response.data);
+        let $ = this.cheerio.load(response.data);
+        let chapters = this.parseChapterElements($);
 
-        const chapters = [];
-        const seenChapters = new Set();
-
-        $("a[href*='/read/'], .list-chapter a, ul.chapters a").each((_, el) => {
-            const $el = $(el);
-            const href = $el.attr("href") || "";
-            const text = $el.text().trim() || $el.attr("title") || "";
-            
-            const numMatch = text.match(/chapter\s*(\d+\.?\d*)/i) || text.match(/(\d+\.?\d*)/);
-            const chapNum = numMatch ? parseFloat(numMatch[1]) : 0;
-            
-            let chapId = href;
-            if (chapId.startsWith('/')) chapId = chapId.substring(1);
-            
-            if (href && !seenChapters.has(chapId)) {
-                seenChapters.add(chapId);
-                chapters.push(App.createChapter({
-                    id: chapId,
-                    mangaId: mangaId,
-                    name: text || `Chapter ${chapNum}`,
-                    chapNum: chapNum,
-                    langCode: 'en'
-                }));
+        // Fallback: If 0 chapters found in main HTML, check AJAX chapter endpoint
+        if (chapters.length === 0) {
+            try {
+                const ajaxReq = App.createRequest({
+                    url: `${BASE_URL}/ajax/manga/${cleanId}/chapter/en`,
+                    method: 'GET',
+                    headers: AJAX_HEADERS
+                });
+                const ajaxRes = await this.requestManager.schedule(ajaxReq, 1);
+                let ajaxHtml = ajaxRes.data;
+                if (typeof ajaxHtml === 'string' && ajaxHtml.startsWith('{')) {
+                    try {
+                        const json = JSON.parse(ajaxHtml);
+                        if (json?.result?.html) ajaxHtml = json.result.html;
+                        else if (json?.html) ajaxHtml = json.html;
+                    } catch(e) {}
+                }
+                if (ajaxHtml) {
+                    $ = this.cheerio.load(ajaxHtml);
+                    chapters = this.parseChapterElements($);
+                }
+            } catch(e) {
+                console.log("AJAX chapter fallback error:", e);
             }
-        });
+        }
         
         return chapters.reverse();
     }
 
-    async getChapterDetails(mangaId, chapterId) {
-        let url = chapterId.startsWith("http") ? chapterId : `${BASE_URL}/${chapterId}`;
-        if (!url.includes(BASE_URL)) {
-            url = `${BASE_URL}/${chapterId}`;
-        }
-        
-        const request = App.createRequest({
-            url: url,
-            method: 'GET',
-            headers: DEFAULT_HEADERS
-        });
-        
-        const response = await this.requestManager.schedule(request, 1);
-        this.checkCloudflareResponse(response.data);
-
-        const $ = this.cheerio.load(response.data);
-
+    parseReaderPageImages($) {
         const pages = [];
-        $("img.page-image, .chapter-page img, img[data-src], .reader-page img").each((_, el) => {
-            let src = $(el).attr("src") || $(el).attr("data-src") || "";
-            if (src && !src.startsWith("http")) src = BASE_URL + src;
-            if (src && !pages.includes(src)) pages.push(src);
+        $("img.page-image, .chapter-page img, img[data-src], .reader-page img, #reader img, .swiper-slide img, div[data-url]").each((_, el) => {
+            let src = $(el).attr("src") || $(el).attr("data-src") || $(el).attr("data-url") || $(el).attr("data-original") || "";
+            if (src && !src.startsWith("http")) src = BASE_URL + (src.startsWith('/') ? '' : '/') + src;
+            if (src && !pages.includes(src) && !src.includes("favicon") && !src.includes("logo")) pages.push(src);
         });
 
         if (pages.length === 0) {
@@ -353,6 +373,56 @@ class MangaFire extends Source {
                     });
                 }
             });
+        }
+        return pages;
+    }
+
+    async getChapterDetails(mangaId, chapterId) {
+        const cleanChapterId = chapterId.replace(/^\//, '');
+        let url = cleanChapterId.startsWith("http") ? cleanChapterId : `${BASE_URL}/${cleanChapterId}`;
+        if (!url.includes(BASE_URL)) {
+            url = `${BASE_URL}/${cleanChapterId}`;
+        }
+        
+        const request = App.createRequest({
+            url: url,
+            method: 'GET',
+            headers: DEFAULT_HEADERS
+        });
+        
+        const response = await this.requestManager.schedule(request, 1);
+        this.checkCloudflareResponse(response.data);
+
+        let $ = this.cheerio.load(response.data);
+        let pages = this.parseReaderPageImages($);
+
+        // Fallback: If 0 images found, try AJAX reader list endpoint
+        if (pages.length === 0) {
+            try {
+                const ajaxReq = App.createRequest({
+                    url: `${BASE_URL}/ajax/read/${cleanChapterId}/list`,
+                    method: 'GET',
+                    headers: AJAX_HEADERS
+                });
+                const ajaxRes = await this.requestManager.schedule(ajaxReq, 1);
+                let ajaxData = ajaxRes.data;
+                if (typeof ajaxData === 'string' && ajaxData.startsWith('{')) {
+                    try {
+                        const json = JSON.parse(ajaxData);
+                        if (json?.result?.images) {
+                            json.result.images.forEach(imgArr => {
+                                const imgUrl = Array.isArray(imgArr) ? imgArr[0] : imgArr;
+                                if (imgUrl && !pages.includes(imgUrl)) pages.push(imgUrl);
+                            });
+                        } else if (json?.result?.html) {
+                            $ = this.cheerio.load(json.result.html);
+                            pages = this.parseReaderPageImages($);
+                        }
+                    } catch(e) {}
+                }
+            } catch(e) {
+                console.log("AJAX reader fallback error:", e);
+            }
         }
 
         return App.createChapterDetails({

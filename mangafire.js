@@ -2,16 +2,18 @@ const BASE_URL = "https://mangafire.to";
 
 const DEFAULT_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept': 'application/json, text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.5',
     'Referer': `${BASE_URL}/`
 };
 
-const AJAX_HEADERS = {
+const API_HEADERS = {
     ...DEFAULT_HEADERS,
-    'X-Requested-With': 'XMLHttpRequest',
-    'Accept': '*/*'
+    'Accept': 'application/json, text/plain, */*',
+    'X-Requested-With': 'XMLHttpRequest'
 };
+
+const CDN_PREFIXES = ["k99", "l1n", "m3z", "nw8", "o48"];
 
 const mangafireInfo = {
     version: '1.0.12',
@@ -19,7 +21,7 @@ const mangafireInfo = {
     icon: 'icon.png',
     author: 'nahamah',
     authorWebsite: 'https://github.com/baranorbi',
-    description: 'HTML Scraper for MangaFire v1.0.12',
+    description: 'Ported from Inkdex General Extensions for Paperback 0.8',
     contentRating: 'MATURE',
     websiteBaseURL: BASE_URL,
     sourceTags: [],
@@ -31,7 +33,7 @@ class MangaFire extends Source {
         super(cheerio);
         try {
             this.requestManager = App.createRequestManager({
-                requestsPerSecond: 3,
+                requestsPerSecond: 4,
                 requestTimeout: 30000,
             });
         } catch (e) {
@@ -67,12 +69,36 @@ class MangaFire extends Source {
         return typeof data === 'string' && (data.includes("Just a moment...") || data.includes("cf-browser-verification") || data.includes("challenge-running"));
     }
 
+    formatPosterUrl(item) {
+        if (!item) return '';
+        if (typeof item === 'string') return item.startsWith('http') ? item : `${BASE_URL}${item.startsWith('/') ? '' : '/'}${item}`;
+        const poster = item.poster || item;
+        const url = poster.large || poster.medium || poster.small || poster.url || '';
+        if (url && !url.startsWith('http')) return `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+        return url;
+    }
+
+    parseApiTitleItem(item) {
+        if (!item) return null;
+        const id = item.hid || item.id || item.slug || '';
+        const title = item.title || item.name || id.replace(/-/g, ' ');
+        const image = this.formatPosterUrl(item);
+
+        if (!id || !title) return null;
+
+        return App.createPartialSourceManga({
+            mangaId: id,
+            id: id,
+            title: title,
+            image: image
+        });
+    }
+
     parseHtmlMangaList($) {
         const mangas = [];
         const seenIds = new Set();
 
         try {
-            // New MangaFire SPA / Browse layout (a.title-rows__link, .title-row-card)
             $("a.title-rows__link, a[href*='/title/'], a[href*='/manga/'], div.unit, .manga-item, .card, .inner, .item").each((_, element) => {
                 try {
                     const $el = $(element);
@@ -151,16 +177,44 @@ class MangaFire extends Source {
                 if (section.id === 'trending') sortParam = 'trending';
                 if (section.id === 'most_popular') sortParam = 'most_viewed';
 
-                const request = App.createRequest({
-                    url: `${BASE_URL}/browse?sort=${sortParam}`,
-                    method: 'GET',
-                    headers: DEFAULT_HEADERS
-                });
-                const response = await this.requestManager.schedule(request, 1);
-                if (response && response.data && !this.isCloudflareChallenge(response.data)) {
-                    const $ = this.cheerio.load(response.data);
-                    section.items = this.parseHtmlMangaList($);
+                // Try API endpoint first
+                let items = [];
+                try {
+                    const apiReq = App.createRequest({
+                        url: `${BASE_URL}/api/titles?sort=${sortParam}&page=1`,
+                        method: 'GET',
+                        headers: API_HEADERS
+                    });
+                    const apiRes = await this.requestManager.schedule(apiReq, 1);
+                    if (apiRes && apiRes.data && !this.isCloudflareChallenge(apiRes.data)) {
+                        let json = apiRes.data;
+                        if (typeof json === 'string' && json.startsWith('{')) {
+                            json = JSON.parse(json);
+                        }
+                        const rawItems = json.items || json.result?.items || json.data || [];
+                        if (Array.isArray(rawItems) && rawItems.length > 0) {
+                            items = rawItems.map(item => this.parseApiTitleItem(item)).filter(Boolean);
+                        }
+                    }
+                } catch (e) {
+                    console.log("API home section error:", e);
                 }
+
+                // Fallback to HTML scraping if API yields 0 items
+                if (items.length === 0) {
+                    const request = App.createRequest({
+                        url: `${BASE_URL}/browse?sort=${sortParam}`,
+                        method: 'GET',
+                        headers: DEFAULT_HEADERS
+                    });
+                    const response = await this.requestManager.schedule(request, 1);
+                    if (response && response.data && !this.isCloudflareChallenge(response.data)) {
+                        const $ = this.cheerio.load(response.data);
+                        items = this.parseHtmlMangaList($);
+                    }
+                }
+
+                section.items = items;
                 if (typeof sectionCallback === 'function') {
                     try { sectionCallback(section); } catch (e) {}
                 }
@@ -180,21 +234,39 @@ class MangaFire extends Source {
             if (homepageSectionId === 'trending') sortParam = 'trending';
             if (homepageSectionId === 'most_popular') sortParam = 'most_viewed';
 
-            const url = `${BASE_URL}/browse?sort=${sortParam}&page=${page}`;
+            let mangas = [];
+            try {
+                const apiReq = App.createRequest({
+                    url: `${BASE_URL}/api/titles?sort=${sortParam}&page=${page}`,
+                    method: 'GET',
+                    headers: API_HEADERS
+                });
+                const apiRes = await this.requestManager.schedule(apiReq, 1);
+                if (apiRes && apiRes.data && !this.isCloudflareChallenge(apiRes.data)) {
+                    let json = apiRes.data;
+                    if (typeof json === 'string' && json.startsWith('{')) {
+                        json = JSON.parse(json);
+                    }
+                    const rawItems = json.items || json.result?.items || json.data || [];
+                    if (Array.isArray(rawItems) && rawItems.length > 0) {
+                        mangas = rawItems.map(item => this.parseApiTitleItem(item)).filter(Boolean);
+                    }
+                }
+            } catch (e) {}
 
-            const request = App.createRequest({
-                url: url,
-                method: 'GET',
-                headers: DEFAULT_HEADERS
-            });
-
-            const response = await this.requestManager.schedule(request, 1);
-            if (!response || !response.data || this.isCloudflareChallenge(response.data)) {
-                return App.createPagedResults({ results: [], metadata: undefined });
+            if (mangas.length === 0) {
+                const url = `${BASE_URL}/browse?sort=${sortParam}&page=${page}`;
+                const request = App.createRequest({
+                    url: url,
+                    method: 'GET',
+                    headers: DEFAULT_HEADERS
+                });
+                const response = await this.requestManager.schedule(request, 1);
+                if (response && response.data && !this.isCloudflareChallenge(response.data)) {
+                    const $ = this.cheerio.load(response.data);
+                    mangas = this.parseHtmlMangaList($);
+                }
             }
-
-            const $ = this.cheerio.load(response.data);
-            const mangas = this.parseHtmlMangaList($);
 
             return App.createPagedResults({
                 results: mangas,
@@ -210,25 +282,48 @@ class MangaFire extends Source {
         try {
             const page = metadata?.page ?? 1;
             const keyword = (typeof query === 'string' ? query : query?.title) || "";
-            
-            let url = `${BASE_URL}/browse?page=${page}`;
-            if (keyword) {
-                url += `&keyword=${encodeURIComponent(keyword)}&sort=relevance:desc`;
+
+            let mangas = [];
+            try {
+                let apiUrl = `${BASE_URL}/api/titles?page=${page}`;
+                if (keyword) apiUrl += `&keyword=${encodeURIComponent(keyword)}&sort=relevance:desc`;
+
+                const apiReq = App.createRequest({
+                    url: apiUrl,
+                    method: 'GET',
+                    headers: API_HEADERS
+                });
+                const apiRes = await this.requestManager.schedule(apiReq, 1);
+                if (apiRes && apiRes.data && !this.isCloudflareChallenge(apiRes.data)) {
+                    let json = apiRes.data;
+                    if (typeof json === 'string' && json.startsWith('{')) {
+                        json = JSON.parse(json);
+                    }
+                    const rawItems = json.items || json.result?.items || json.data || [];
+                    if (Array.isArray(rawItems) && rawItems.length > 0) {
+                        mangas = rawItems.map(item => this.parseApiTitleItem(item)).filter(Boolean);
+                    }
+                }
+            } catch (e) {}
+
+            if (mangas.length === 0) {
+                let url = `${BASE_URL}/browse?page=${page}`;
+                if (keyword) {
+                    url += `&keyword=${encodeURIComponent(keyword)}&sort=relevance:desc`;
+                }
+
+                const request = App.createRequest({
+                    url: url,
+                    method: 'GET',
+                    headers: DEFAULT_HEADERS
+                });
+
+                const response = await this.requestManager.schedule(request, 1);
+                if (response && response.data && !this.isCloudflareChallenge(response.data)) {
+                    const $ = this.cheerio.load(response.data);
+                    mangas = this.parseHtmlMangaList($);
+                }
             }
-
-            const request = App.createRequest({
-                url: url,
-                method: 'GET',
-                headers: DEFAULT_HEADERS
-            });
-
-            const response = await this.requestManager.schedule(request, 1);
-            if (!response || !response.data || this.isCloudflareChallenge(response.data)) {
-                return App.createPagedResults({ results: [], metadata: undefined });
-            }
-
-            const $ = this.cheerio.load(response.data);
-            const mangas = this.parseHtmlMangaList($);
 
             return App.createPagedResults({
                 results: mangas,
@@ -255,14 +350,60 @@ class MangaFire extends Source {
         });
 
         try {
+            // Try API endpoint first (/api/titles/[cleanId])
+            try {
+                const apiReq = App.createRequest({
+                    url: `${BASE_URL}/api/titles/${cleanId}`,
+                    method: 'GET',
+                    headers: API_HEADERS
+                });
+                const apiRes = await this.requestManager.schedule(apiReq, 1);
+                if (apiRes && apiRes.data && !this.isCloudflareChallenge(apiRes.data)) {
+                    let json = apiRes.data;
+                    if (typeof json === 'string' && json.startsWith('{')) {
+                        json = JSON.parse(json);
+                    }
+                    const details = json.result || json.data || json;
+                    if (details && (details.title || details.hid)) {
+                        const title = details.title || cleanId.replace(/-/g, ' ');
+                        const image = this.formatPosterUrl(details);
+                        const description = details.synopsisHtml ? details.synopsisHtml.replace(/<[^>]+>/g, '').trim() : (details.description || '');
+                        
+                        let status = 'ONGOING';
+                        const statusRaw = (details.status || '').toLowerCase();
+                        if (statusRaw.includes('finish') || statusRaw.includes('complete')) status = 'COMPLETED';
+
+                        const authors = (details.authors || []).map(a => a.title || a.name || a);
+                        const artists = (details.artists || []).map(a => a.title || a.name || a);
+                        const genreTags = (details.genres || []).map(g => App.createTag({ id: String(g.id || g.title), label: g.title || g.name || String(g) }));
+
+                        return App.createSourceManga({
+                            id: mangaId,
+                            mangaId: mangaId,
+                            mangaInfo: App.createMangaInfo({
+                                titles: [title],
+                                image: image,
+                                desc: description,
+                                description: description,
+                                status: status,
+                                author: authors[0] || 'Unknown',
+                                artist: artists[0] || authors[0] || 'Unknown',
+                                tags: genreTags.length > 0 ? [App.createTagSection({ id: '0', label: 'genres', tags: genreTags })] : []
+                            })
+                        });
+                    }
+                }
+            } catch (e) {
+                console.log("API getMangaDetails error:", e);
+            }
+
+            // HTML Fallback parsing
             const url = `${BASE_URL}/title/${cleanId}`;
-            
             const request = App.createRequest({
                 url: url,
                 method: 'GET',
                 headers: DEFAULT_HEADERS
             });
-            
             const response = await this.requestManager.schedule(request, 1);
             if (!response || !response.data || this.isCloudflareChallenge(response.data)) {
                 return fallbackManga;
@@ -362,23 +503,66 @@ class MangaFire extends Source {
     async getChapters(mangaId) {
         try {
             const cleanId = mangaId.replace(/^\/(?:title|manga)\//, '');
+            const chapters = [];
+            const seenChapters = new Set();
+
+            // 1. Try API endpoint (/api/titles/[cleanId]/chapters)
+            try {
+                const apiReq = App.createRequest({
+                    url: `${BASE_URL}/api/titles/${cleanId}/chapters`,
+                    method: 'GET',
+                    headers: API_HEADERS
+                });
+                const apiRes = await this.requestManager.schedule(apiReq, 1);
+                if (apiRes && apiRes.data && !this.isCloudflareChallenge(apiRes.data)) {
+                    let json = apiRes.data;
+                    if (typeof json === 'string' && json.startsWith('{')) {
+                        json = JSON.parse(json);
+                    }
+                    const rawChapters = json.items || json.result?.items || json.data || json.chapters || [];
+                    if (Array.isArray(rawChapters) && rawChapters.length > 0) {
+                        for (const item of rawChapters) {
+                            const cId = String(item.id || item.hid || item.slug || '');
+                            const chapNum = typeof item.number === 'number' ? item.number : parseFloat(item.number || '0');
+                            const name = item.name || `Chapter ${chapNum}`;
+                            const path = `title/${cleanId}/chapter/${cId}`;
+
+                            if (cId && !seenChapters.has(path)) {
+                                seenChapters.add(path);
+                                chapters.push(App.createChapter({
+                                    id: path,
+                                    mangaId: cleanId,
+                                    name: name,
+                                    chapNum: chapNum,
+                                    langCode: 'en'
+                                }));
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log("API getChapters error:", e);
+            }
+
+            if (chapters.length > 0) return chapters.reverse();
+
+            // 2. HTML parsing
             const url = `${BASE_URL}/title/${cleanId}`;
-            
             const request = App.createRequest({
                 url: url,
                 method: 'GET',
                 headers: DEFAULT_HEADERS
             });
-            
             const response = await this.requestManager.schedule(request, 1);
             if (!response || !response.data || this.isCloudflareChallenge(response.data)) {
                 return [];
             }
 
             let $ = this.cheerio.load(response.data);
-            let chapters = this.parseChapterElements($);
+            let htmlChapters = this.parseChapterElements($);
 
-            if (chapters.length === 0) {
+            // 3. AJAX Fallback
+            if (htmlChapters.length === 0) {
                 try {
                     const ajaxReq = App.createRequest({
                         url: `${BASE_URL}/ajax/manga/${cleanId}/chapter/en`,
@@ -396,14 +580,14 @@ class MangaFire extends Source {
                     }
                     if (ajaxHtml && !this.isCloudflareChallenge(ajaxHtml)) {
                         $ = this.cheerio.load(ajaxHtml);
-                        chapters = this.parseChapterElements($);
+                        htmlChapters = this.parseChapterElements($);
                     }
                 } catch(e) {
                     console.log("AJAX chapter fallback error:", e);
                 }
             }
             
-            return chapters.reverse();
+            return htmlChapters.reverse();
         } catch (e) {
             console.log("Error in getChapters:", e);
             return [];
@@ -447,6 +631,45 @@ class MangaFire extends Source {
 
         try {
             const cleanChapterId = chapterId.replace(/^\//, '');
+            const pages = [];
+
+            // 1. Try API endpoint (/api/chapters/[id])
+            const chapterNumId = cleanChapterId.split('/').pop();
+            if (chapterNumId) {
+                try {
+                    const apiReq = App.createRequest({
+                        url: `${BASE_URL}/api/chapters/${chapterNumId}`,
+                        method: 'GET',
+                        headers: API_HEADERS
+                    });
+                    const apiRes = await this.requestManager.schedule(apiReq, 1);
+                    if (apiRes && apiRes.data && !this.isCloudflareChallenge(apiRes.data)) {
+                        let json = apiRes.data;
+                        if (typeof json === 'string' && json.startsWith('{')) {
+                            json = JSON.parse(json);
+                        }
+                        const rawPages = json.pages || json.result?.pages || json.data?.pages || [];
+                        if (Array.isArray(rawPages) && rawPages.length > 0) {
+                            rawPages.forEach(p => {
+                                const url = typeof p === 'string' ? p : (p.url || p.src || '');
+                                if (url && !pages.includes(url)) pages.push(url);
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.log("API getChapterDetails error:", e);
+                }
+            }
+
+            if (pages.length > 0) {
+                return App.createChapterDetails({
+                    id: chapterId,
+                    mangaId: mangaId,
+                    pages: pages,
+                });
+            }
+
+            // 2. HTML parsing
             let url = cleanChapterId.startsWith("http") ? cleanChapterId : `${BASE_URL}/${cleanChapterId}`;
             if (!url.includes(BASE_URL)) {
                 url = `${BASE_URL}/${cleanChapterId}`;
@@ -464,9 +687,10 @@ class MangaFire extends Source {
             }
 
             let $ = this.cheerio.load(response.data);
-            let pages = this.parseReaderPageImages($);
+            let htmlPages = this.parseReaderPageImages($);
 
-            if (pages.length === 0) {
+            // 3. AJAX Fallback
+            if (htmlPages.length === 0) {
                 try {
                     const ajaxReq = App.createRequest({
                         url: `${BASE_URL}/ajax/read/${cleanChapterId}/list`,
@@ -481,11 +705,11 @@ class MangaFire extends Source {
                             if (json?.result?.images) {
                                 json.result.images.forEach(imgArr => {
                                     const imgUrl = Array.isArray(imgArr) ? imgArr[0] : imgArr;
-                                    if (imgUrl && !pages.includes(imgUrl)) pages.push(imgUrl);
+                                    if (imgUrl && !htmlPages.includes(imgUrl)) htmlPages.push(imgUrl);
                                 });
                             } else if (json?.result?.html) {
                                 $ = this.cheerio.load(json.result.html);
-                                pages = this.parseReaderPageImages($);
+                                htmlPages = this.parseReaderPageImages($);
                             }
                         } catch(e) {}
                     }
@@ -497,7 +721,7 @@ class MangaFire extends Source {
             return App.createChapterDetails({
                 id: chapterId,
                 mangaId: mangaId,
-                pages: pages,
+                pages: htmlPages,
             });
         } catch (e) {
             console.log("Error in getChapterDetails:", e);

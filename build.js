@@ -2,15 +2,22 @@ const fs = require('fs');
 const path = require('path');
 
 const VERSION = "1.0.13";
-console.log(`=== BUILDING MANGAFIRE EXTENSION v${VERSION} FOR PAPERBACK 0.8 ===`);
+console.log(`=== BUILDING MANGAFIRE EXTENSION v${VERSION} (ALL BUNDLE PATHS FOR PAPERBACK 0.8) ===`);
 
 const cleanCode = fs.readFileSync('source_code.js', 'utf8');
 
 const filesToUpdate = [
     'mangafire.js',
     'mangafire/source.js',
+    'mangafire/index.js',
+    `mangafire/${VERSION}/source.js`,
+    `mangafire/v${VERSION}/source.js`,
     'bundles/mangafire/source.js',
-    `bundles/mangafire/${VERSION}/source.js`
+    'bundles/mangafire/index.js',
+    `bundles/mangafire/${VERSION}/source.js`,
+    `bundles/mangafire/${VERSION}/index.js`,
+    `bundles/mangafire/v${VERSION}/source.js`,
+    `bundles/mangafire/v${VERSION}/index.js`
 ];
 
 for (const f of filesToUpdate) {
@@ -54,14 +61,14 @@ const versioning = {
             "id": "mangafire",
             "name": "MangaFire",
             "author": "nahamah",
-            "desc": "Ported from Inkdex General Extensions for Paperback 0.8",
+            "desc": "MangaFire Extension for Paperback 0.8 v1.0.13",
             "website": "https://mangafire.to",
             "contentRating": "MATURE",
             "version": VERSION,
             "icon": "icon.png",
             "tags": [],
             "websiteBaseURL": "https://mangafire.to",
-            "intents": 21
+            "intents": 23
         }
     ],
     "builtWith": {
@@ -71,4 +78,4 @@ const versioning = {
 };
 fs.writeFileSync('versioning.json', JSON.stringify(versioning, null, 4));
 
-console.log(`Successfully built clean mangafire extension v${VERSION}!`);
+console.log(`Successfully built all mangafire extension bundle paths for v${VERSION}!`);

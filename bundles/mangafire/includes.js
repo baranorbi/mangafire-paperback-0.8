@@ -1,109 +1,3 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Sources = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BadgeColor = void 0;
-var BadgeColor;
-(function (BadgeColor) {
-    BadgeColor["BLUE"] = "default";
-    BadgeColor["GREEN"] = "success";
-    BadgeColor["GREY"] = "info";
-    BadgeColor["YELLOW"] = "warning";
-    BadgeColor["RED"] = "danger";
-})(BadgeColor = exports.BadgeColor || (exports.BadgeColor = {}));
-
-},{}],2:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-
-},{}],3:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.HomeSectionType = void 0;
-var HomeSectionType;
-(function (HomeSectionType) {
-    HomeSectionType["singleRowNormal"] = "singleRowNormal";
-    HomeSectionType["singleRowLarge"] = "singleRowLarge";
-    HomeSectionType["doubleRow"] = "doubleRow";
-    HomeSectionType["featured"] = "featured";
-})(HomeSectionType = exports.HomeSectionType || (exports.HomeSectionType = {}));
-
-},{}],4:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-
-},{}],5:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.urlEncodeObject = exports.convertTime = exports.Source = void 0;
-class Source {
-    constructor(cheerio) {
-        this.cheerio = cheerio;
-    }
-    searchRequest(query, metadata) {
-        return this.getSearchResults(query, metadata);
-    }
-    async getTags() {
-        return this.getSearchTags?.();
-    }
-}
-exports.Source = Source;
-function convertTime(timeAgo) {
-    let time;
-    let trimmed = Number((/\d*/.exec(timeAgo) ?? [])[0]);
-    trimmed = (trimmed == 0 && timeAgo.includes('a')) ? 1 : trimmed;
-    if (timeAgo.includes('minutes')) {
-        time = new Date(Date.now() - trimmed * 60000);
-    }
-    else if (timeAgo.includes('hours')) {
-        time = new Date(Date.now() - trimmed * 3600000);
-    }
-    else if (timeAgo.includes('days')) {
-        time = new Date(Date.now() - trimmed * 86400000);
-    }
-    else if (timeAgo.includes('year') || timeAgo.includes('years')) {
-        time = new Date(Date.now() - trimmed * 31556952000);
-    }
-    else {
-        time = new Date(Date.now());
-    }
-    return time;
-}
-exports.convertTime = convertTime;
-function urlEncodeObject(obj) {
-    let ret = {};
-    for (const entry of Object.entries(obj)) {
-        ret[encodeURIComponent(entry[0])] = encodeURIComponent(entry[1]);
-    }
-    return ret;
-}
-exports.urlEncodeObject = urlEncodeObject;
-
-},{}],6:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ContentRating = exports.SourceIntents = void 0;
-var SourceIntents;
-(function (SourceIntents) {
-    SourceIntents[SourceIntents["MANGA_CHAPTERS"] = 1] = "MANGA_CHAPTERS";
-    SourceIntents[SourceIntents["MANGA_TRACKING"] = 2] = "MANGA_TRACKING";
-    SourceIntents[SourceIntents["HOMEPAGE_SECTIONS"] = 4] = "HOMEPAGE_SECTIONS";
-    SourceIntents[SourceIntents["COLLECTION_MANAGEMENT"] = 8] = "COLLECTION_MANAGEMENT";
-    SourceIntents[SourceIntents["CLOUDFLARE_BYPASS_REQUIRED"] = 16] = "CLOUDFLARE_BYPASS_REQUIRED";
-    SourceIntents[SourceIntents["SETTINGS_UI"] = 32] = "SETTINGS_UI";
-})(SourceIntents = exports.SourceIntents || (exports.SourceIntents = {}));
-var ContentRating;
-(function (ContentRating) {
-    ContentRating["EVERYONE"] = "EVERYONE";
-    ContentRating["MATURE"] = "MATURE";
-    ContentRating["ADULT"] = "ADULT";
-})(ContentRating = exports.ContentRating || (exports.ContentRating = {}));
-
-},{}],7:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.mangafire = exports.mangafireInfo = void 0;
-const types_1 = require("@paperback/types");
-
 const BASE_URL = "https://mangafire.to";
 
 const DEFAULT_HEADERS = {
@@ -120,20 +14,28 @@ exports.mangafireInfo = {
     author: 'nahamah',
     authorWebsite: 'https://github.com/baranorbi',
     description: 'HTML Scraper for MangaFire v1.0.12',
-    contentRating: types_1.ContentRating.MATURE,
+    contentRating: 'MATURE',
     websiteBaseURL: BASE_URL,
     sourceTags: [],
-    intents: types_1.SourceIntents.MANGA_CHAPTERS | types_1.SourceIntents.HOMEPAGE_SECTIONS | types_1.SourceIntents.CLOUDFLARE_BYPASS_REQUIRED
+    intents: 1 | 4 | 16 // MANGA_CHAPTERS | HOMEPAGE_SECTIONS | CLOUDFLARE_BYPASS_REQUIRED
 };
 
-class MangaFire extends types_1.Source {
-    constructor() {
-        super(...arguments);
+class MangaFire extends Source {
+    constructor(cheerio) {
+        super(cheerio);
         this.requestManager = App.createRequestManager({
             requestsPerSecond: 3,
             requestTimeout: 30000,
         });
     }
+
+    get id() { return "mangafire"; }
+    get name() { return "MangaFire"; }
+    get icon() { return "icon.png"; }
+    get version() { return "1.0.12"; }
+    get author() { return "nahamah"; }
+    get website() { return BASE_URL; }
+    get language() { return "en"; }
 
     async getCloudflareBypassRequestAsync() {
         return App.createRequest({
@@ -409,7 +311,5 @@ class MangaFire extends types_1.Source {
         });
     }
 }
-exports.mangafire = MangaFire;
 
-},{}]},{},[7])(7)
-});
+exports.mangafire = MangaFire;

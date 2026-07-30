@@ -1,11 +1,12 @@
 {
-  "name": "MangaFire.to (0.8)",
-  "sources": [
-    {
-      "id": "mangafire",
-      "name": "MangaFire",
-      "version": "1.0.12",
-      "icon": "icon.png"
-    }
-  ]
+    "name": "MangaFire.to (0.8)",
+    "sources": [
+        {
+            "id": "mangafire",
+            "name": "MangaFire",
+            "file": "mangafire.js",
+            "version": "1.0.13",
+            "icon": "icon.png"
+        }
+    ]
 }

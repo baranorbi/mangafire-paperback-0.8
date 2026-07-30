@@ -1,16 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log("=== BUILDING MANGAFIRE EXTENSION v1.0.12 (CLEAN RAW JS FOR PAPERBACK 0.8) ===");
+const VERSION = "1.0.13";
+console.log(`=== BUILDING MANGAFIRE EXTENSION v${VERSION} FOR PAPERBACK 0.8 ===`);
 
-// Read raw source_code.js directly (No Browserify IIFE wrapping, so native Source class prototype works)
 const cleanCode = fs.readFileSync('source_code.js', 'utf8');
 
 const filesToUpdate = [
     'mangafire.js',
     'mangafire/source.js',
     'bundles/mangafire/source.js',
-    'bundles/mangafire/1.0.12/source.js'
+    `bundles/mangafire/${VERSION}/source.js`
 ];
 
 for (const f of filesToUpdate) {
@@ -25,12 +25,27 @@ const indexJs = `module.exports = {
     {
       "id": "mangafire",
       "name": "MangaFire",
-      "file": "mangafire.js"
+      "file": "mangafire.js",
+      "version": "${VERSION}"
     }
   ]
 };
 `;
 fs.writeFileSync('index.js', indexJs);
+
+const indexJson = {
+  "name": "MangaFire.to (0.8)",
+  "sources": [
+    {
+      "id": "mangafire",
+      "name": "MangaFire",
+      "file": "mangafire.js",
+      "version": VERSION,
+      "icon": "icon.png"
+    }
+  ]
+};
+fs.writeFileSync('index.json', JSON.stringify(indexJson, null, 4));
 
 const versioning = {
     "buildTime": new Date().toISOString(),
@@ -39,10 +54,10 @@ const versioning = {
             "id": "mangafire",
             "name": "MangaFire",
             "author": "nahamah",
-            "desc": "HTML Scraper for MangaFire v1.0.12",
+            "desc": "Ported from Inkdex General Extensions for Paperback 0.8",
             "website": "https://mangafire.to",
             "contentRating": "MATURE",
-            "version": "1.0.12",
+            "version": VERSION,
             "icon": "icon.png",
             "tags": [],
             "websiteBaseURL": "https://mangafire.to",
@@ -56,4 +71,4 @@ const versioning = {
 };
 fs.writeFileSync('versioning.json', JSON.stringify(versioning, null, 4));
 
-console.log("Successfully built clean mangafire extension v1.0.12!");
+console.log(`Successfully built clean mangafire extension v${VERSION}!`);

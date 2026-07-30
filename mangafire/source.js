@@ -7,16 +7,14 @@ const DEFAULT_HEADERS = {
     'Referer': `${BASE_URL}/`
 };
 
-const API_HEADERS = {
+const AJAX_HEADERS = {
     ...DEFAULT_HEADERS,
-    'Accept': 'application/json, text/plain, */*',
-    'X-Requested-With': 'XMLHttpRequest'
+    'X-Requested-With': 'XMLHttpRequest',
+    'Accept': '*/*'
 };
 
-const CDN_PREFIXES = ["k99", "l1n", "m3z", "nw8", "o48"];
-
 const mangafireInfo = {
-    version: '1.0.12',
+    version: '1.0.13',
     name: 'MangaFire',
     icon: 'icon.png',
     author: 'nahamah',
@@ -44,7 +42,7 @@ class MangaFire extends Source {
     get id() { return "mangafire"; }
     get name() { return "MangaFire"; }
     get icon() { return "icon.png"; }
-    get version() { return "1.0.12"; }
+    get version() { return "1.0.13"; }
     get author() { return "nahamah"; }
     get website() { return BASE_URL; }
     get language() { return "en"; }
@@ -99,6 +97,7 @@ class MangaFire extends Source {
         const seenIds = new Set();
 
         try {
+            // New MangaFire SPA / Browse layout (a.title-rows__link, .title-row-card)
             $("a.title-rows__link, a[href*='/title/'], a[href*='/manga/'], div.unit, .manga-item, .card, .inner, .item").each((_, element) => {
                 try {
                     const $el = $(element);

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const VERSION = "1.0.13";
-console.log(`=== BUILDING MANGAFIRE EXTENSION v${VERSION} (ALL BUNDLE PATHS FOR PAPERBACK 0.8) ===`);
+console.log(`=== BUILDING MANGAFIRE EXTENSION v${VERSION} FOR PAPERBACK 0.8 ===`);
 
 const cleanCode = fs.readFileSync('source_code.js', 'utf8');
 
@@ -42,13 +42,16 @@ fs.writeFileSync('index.js', indexJs);
 
 const indexJson = {
   "name": "MangaFire.to (0.8)",
+  "description": "MangaFire custom source for Paperback 0.8",
+  "icon": "https://github.com/baranorbi.png",
+  "website": "https://mangafire.to",
   "sources": [
     {
       "id": "mangafire",
       "name": "MangaFire",
       "file": "mangafire.js",
-      "version": VERSION,
-      "icon": "icon.png"
+      "author": "nahamah",
+      "version": VERSION
     }
   ]
 };
@@ -78,4 +81,4 @@ const versioning = {
 };
 fs.writeFileSync('versioning.json', JSON.stringify(versioning, null, 4));
 
-console.log(`Successfully built all mangafire extension bundle paths for v${VERSION}!`);
+console.log(`Successfully built clean mangafire extension v${VERSION}!`);

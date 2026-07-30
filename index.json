@@ -1,12 +1,15 @@
 {
     "name": "MangaFire.to (0.8)",
+    "description": "MangaFire custom source for Paperback 0.8",
+    "icon": "https://github.com/baranorbi.png",
+    "website": "https://mangafire.to",
     "sources": [
         {
             "id": "mangafire",
             "name": "MangaFire",
             "file": "mangafire.js",
-            "version": "1.0.13",
-            "icon": "icon.png"
+            "author": "nahamah",
+            "version": "1.0.13"
         }
     ]
 }

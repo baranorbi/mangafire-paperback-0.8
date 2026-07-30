@@ -1,7 +1,3 @@
-var exports = typeof exports !== "undefined" ? exports : {};
-var module = typeof module !== "undefined" ? module : { exports: exports };
-var Sources = typeof Sources !== "undefined" ? Sources : {};
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Sources = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 const BASE_URL = "https://mangafire.to";
 
 const DEFAULT_HEADERS = {
@@ -23,7 +19,6 @@ const mangafireInfo = {
     sourceTags: [],
     intents: 1 | 4 | 16 // MANGA_CHAPTERS | HOMEPAGE_SECTIONS | CLOUDFLARE_BYPASS_REQUIRED
 };
-exports.mangafireInfo = mangafireInfo;
 
 class MangaFire extends Source {
     constructor(cheerio) {
@@ -124,8 +119,10 @@ class MangaFire extends Source {
             })
         ];
 
-        for (const section of sections) {
-            if (typeof sectionCallback === 'function') sectionCallback(section);
+        if (typeof sectionCallback === 'function') {
+            for (const section of sections) {
+                sectionCallback(section);
+            }
         }
 
         const promises = sections.map(async (section) => {
@@ -144,13 +141,16 @@ class MangaFire extends Source {
 
                 const $ = this.cheerio.load(response.data);
                 section.items = this.parseHtmlMangaList($);
-                if (typeof sectionCallback === 'function') sectionCallback(section);
+                if (typeof sectionCallback === 'function') {
+                    sectionCallback(section);
+                }
             } catch (error) {
                 console.log(`Failed to load section ${section.id}:`, error);
             }
         });
 
         await Promise.all(promises);
+        return sections;
     }
 
     async getViewMoreItems(homepageSectionId, metadata) {
@@ -259,6 +259,7 @@ class MangaFire extends Source {
 
         return App.createSourceManga({
             id: mangaId,
+            mangaId: mangaId,
             mangaInfo: App.createMangaInfo({
                 titles: [title],
                 image: image,
@@ -305,6 +306,7 @@ class MangaFire extends Source {
                 seenChapters.add(chapId);
                 chapters.push(App.createChapter({
                     id: chapId,
+                    mangaId: mangaId,
                     name: text || `Chapter ${chapNum}`,
                     chapNum: chapNum,
                     langCode: 'en'
@@ -360,7 +362,12 @@ class MangaFire extends Source {
         });
     }
 
-    // Legacy method compatibility aliases
+    getMangaShareUrl(mangaId) {
+        const cleanId = mangaId.replace(/^\/(?:manga|title)\//, '');
+        return `${BASE_URL}/manga/${cleanId}`;
+    }
+
+    // Legacy method compatibility aliases for Paperback 0.8
     async getMangaList(searchTerm = "", page = 1) {
         const pagedResults = await this.getSearchResults(searchTerm, { page });
         return pagedResults?.results || [];
@@ -380,69 +387,21 @@ class MangaFire extends Source {
     }
 }
 
-// Static delegate methods so calls to MangaFire.method() or instance.method() both work
-function getInstance() {
-    if (!MangaFire._instance) {
-        MangaFire._instance = new MangaFire(typeof cheerio !== 'undefined' ? cheerio : null);
-    }
-    return MangaFire._instance;
+// Exports for CommonJS and global JavaScriptCore runtime
+if (typeof exports !== 'undefined') {
+    exports.mangafireInfo = mangafireInfo;
+    exports.mangafire = MangaFire;
+    exports.MangaFire = MangaFire;
 }
 
-MangaFire.getCloudflareBypassRequestAsync = function() { return getInstance().getCloudflareBypassRequestAsync(); };
-MangaFire.getHomePageSections = function(cb) { return getInstance().getHomePageSections(cb); };
-MangaFire.getViewMoreItems = function(id, meta) { return getInstance().getViewMoreItems(id, meta); };
-MangaFire.getSearchResults = function(q, meta) { return getInstance().getSearchResults(q, meta); };
-MangaFire.getMangaDetails = function(id) { return getInstance().getMangaDetails(id); };
-MangaFire.getChapters = function(id) { return getInstance().getChapters(id); };
-MangaFire.getChapterDetails = function(mId, cId) { return getInstance().getChapterDetails(mId, cId); };
-MangaFire.getMangaList = function(st, p) { return getInstance().getMangaList(st, p); };
-MangaFire.getMangaItems = function(st, p) { return getInstance().getMangaItems(st, p); };
-MangaFire.getChapterList = function(id) { return getInstance().getChapterList(id); };
-MangaFire.getChapter = function(cId) { return getInstance().getChapter(cId); };
-
-exports.mangafire = MangaFire;
-exports.MangaFire = MangaFire;
-
-// Expose exports globally across JavaScriptCore / Browserify contexts
 if (typeof globalThis !== 'undefined') {
     globalThis.mangafireInfo = mangafireInfo;
     globalThis.mangafire = MangaFire;
     globalThis.MangaFire = MangaFire;
-    globalThis.Sources = {
-        mangafireInfo: mangafireInfo,
-        mangafire: MangaFire,
-        MangaFire: MangaFire
-    };
 }
+
 if (typeof window !== 'undefined') {
     window.mangafireInfo = mangafireInfo;
     window.mangafire = MangaFire;
     window.MangaFire = MangaFire;
-    window.Sources = globalThis.Sources;
-}
-if (typeof self !== 'undefined') {
-    self.mangafireInfo = mangafireInfo;
-    self.mangafire = MangaFire;
-    self.MangaFire = MangaFire;
-    self.Sources = globalThis.Sources;
-}
-
-},{}]},{},[1])(1)
-});
-
-if (typeof globalThis !== "undefined") {
-    if (typeof Sources !== "undefined") {
-        if (Sources.mangafire) globalThis.mangafire = Sources.mangafire;
-        if (Sources.mangafireInfo) globalThis.mangafireInfo = Sources.mangafireInfo;
-    }
-    if (typeof exports !== "undefined") {
-        globalThis.exports = exports;
-        if (exports.mangafire) globalThis.mangafire = exports.mangafire;
-        if (exports.mangafireInfo) globalThis.mangafireInfo = exports.mangafireInfo;
-    }
-}
-if (typeof window !== "undefined") {
-    if (typeof exports !== "undefined") window.exports = exports;
-    if (typeof mangafire !== "undefined") window.mangafire = mangafire;
-    if (typeof mangafireInfo !== "undefined") window.mangafireInfo = mangafireInfo;
 }

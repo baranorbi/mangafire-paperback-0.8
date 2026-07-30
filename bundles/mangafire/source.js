@@ -49,7 +49,7 @@ class MangaFire extends Source {
 
     async getCloudflareBypassRequestAsync() {
         return App.createRequest({
-            url: `${BASE_URL}/home`,
+            url: `${BASE_URL}/browse`,
             method: 'GET',
             headers: DEFAULT_HEADERS
         });
@@ -72,24 +72,28 @@ class MangaFire extends Source {
         const seenIds = new Set();
 
         try {
-            $("div.unit, .manga-item, .card, div.original.card-lg div.unit, .inner, .item").each((_, element) => {
+            // New MangaFire SPA / Browse layout (a.title-rows__link, .title-row-card)
+            $("a.title-rows__link, a[href*='/title/'], a[href*='/manga/'], div.unit, .manga-item, .card, .inner, .item").each((_, element) => {
                 try {
                     const $el = $(element);
-                    const titleEl = $el.find("div.info > a, .detail .title a, a.title, h3 a, .info > div > a, a[href*='/manga/'], a[href*='/title/']").last();
-                    let title = titleEl.text().trim() || $el.find("a").attr("title") || "";
-                    if (!title) {
-                        title = $el.find("a").text().trim();
+                    let href = $el.attr("href") || "";
+                    if (!href) {
+                        href = $el.find("a[href*='/title/'], a[href*='/manga/'], a.poster, a.title").first().attr("href") || "";
                     }
-                    
-                    const posterEl = $el.find("a.poster, a[href*='/manga/'], a[href*='/title/']").first();
-                    const href = posterEl.attr("href") || titleEl.attr("href") || "";
 
                     if (!href) return;
 
-                    const idMatch = href.match(/\/(?:manga|title)\/([^\/?#]+)/);
+                    const idMatch = href.match(/\/(?:title|manga)\/([^\/?#]+)/);
                     const id = idMatch ? idMatch[1] : href.split("/").filter(Boolean).pop() || "";
-                    
-                    let image = $el.find("img").attr("src") || $el.find("img").attr("data-src") || $el.find("img").attr("data-lazy") || "";
+
+                    const titleEl = $el.find(".title-row-card__title, div.info > a, .detail .title a, a.title, h3 a").last();
+                    let title = titleEl.text().trim() || $el.find("img").attr("alt") || $el.attr("title") || "";
+                    if (!title) {
+                        title = id.replace(/-/g, ' ').replace(/^[a-z0-9]+ /, '');
+                    }
+
+                    const posterImg = $el.find(".title-row-card__poster img, img").first();
+                    let image = posterImg.attr("src") || posterImg.attr("data-src") || posterImg.attr("data-lazy") || "";
 
                     if (title && id && !seenIds.has(id)) {
                         seenIds.add(id);
@@ -148,7 +152,7 @@ class MangaFire extends Source {
                 if (section.id === 'most_popular') sortParam = 'most_viewed';
 
                 const request = App.createRequest({
-                    url: `${BASE_URL}/filter?sort=${sortParam}`,
+                    url: `${BASE_URL}/browse?sort=${sortParam}`,
                     method: 'GET',
                     headers: DEFAULT_HEADERS
                 });
@@ -176,7 +180,7 @@ class MangaFire extends Source {
             if (homepageSectionId === 'trending') sortParam = 'trending';
             if (homepageSectionId === 'most_popular') sortParam = 'most_viewed';
 
-            const url = `${BASE_URL}/filter?sort=${sortParam}&page=${page}`;
+            const url = `${BASE_URL}/browse?sort=${sortParam}&page=${page}`;
 
             const request = App.createRequest({
                 url: url,
@@ -207,9 +211,9 @@ class MangaFire extends Source {
             const page = metadata?.page ?? 1;
             const keyword = (typeof query === 'string' ? query : query?.title) || "";
             
-            let url = `${BASE_URL}/filter?page=${page}`;
+            let url = `${BASE_URL}/browse?page=${page}`;
             if (keyword) {
-                url += `&keyword=${encodeURIComponent(keyword)}`;
+                url += `&keyword=${encodeURIComponent(keyword)}&sort=relevance:desc`;
             }
 
             const request = App.createRequest({
@@ -237,12 +241,12 @@ class MangaFire extends Source {
     }
 
     async getMangaDetails(mangaId) {
-        const cleanId = mangaId.replace(/^\/(?:manga|title)\//, '');
+        const cleanId = mangaId.replace(/^\/(?:title|manga)\//, '');
         const fallbackManga = App.createSourceManga({
             id: mangaId,
             mangaId: mangaId,
             mangaInfo: App.createMangaInfo({
-                titles: [cleanId],
+                titles: [cleanId.replace(/-/g, ' ')],
                 image: '',
                 desc: 'MangaFire Details',
                 description: 'MangaFire Details',
@@ -251,7 +255,7 @@ class MangaFire extends Source {
         });
 
         try {
-            const url = `${BASE_URL}/manga/${cleanId}`;
+            const url = `${BASE_URL}/title/${cleanId}`;
             
             const request = App.createRequest({
                 url: url,
@@ -268,9 +272,9 @@ class MangaFire extends Source {
 
             const title = $('h1').first().text().trim()
                 || $('meta[property="og:title"]').attr('content')?.replace(/ - MangaFire.*/i, '').trim()
-                || cleanId;
+                || cleanId.replace(/-/g, ' ');
                 
-            const image = $('img.cover, .cover img, .poster img, .manga-poster img').attr('src')
+            const image = $('img.cover, .cover img, .poster img, .manga-poster img, .title-row-card__poster img').attr('src')
                 || $('meta[property="og:image"]').attr('content')
                 || '';
                 
@@ -357,8 +361,8 @@ class MangaFire extends Source {
 
     async getChapters(mangaId) {
         try {
-            const cleanId = mangaId.replace(/^\/(?:manga|title)\//, '');
-            const url = `${BASE_URL}/manga/${cleanId}`;
+            const cleanId = mangaId.replace(/^\/(?:title|manga)\//, '');
+            const url = `${BASE_URL}/title/${cleanId}`;
             
             const request = App.createRequest({
                 url: url,
@@ -502,8 +506,8 @@ class MangaFire extends Source {
     }
 
     getMangaShareUrl(mangaId) {
-        const cleanId = mangaId.replace(/^\/(?:manga|title)\//, '');
-        return `${BASE_URL}/manga/${cleanId}`;
+        const cleanId = mangaId.replace(/^\/(?:title|manga)\//, '');
+        return `${BASE_URL}/title/${cleanId}`;
     }
 
     // Legacy method compatibility aliases for Paperback 0.8

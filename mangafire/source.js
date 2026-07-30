@@ -538,21 +538,21 @@ class MangaFire extends Source {
     }
 }
 
-// Exports for CommonJS and global JavaScriptCore runtime
-if (typeof exports !== 'undefined') {
-    exports.mangafireInfo = mangafireInfo;
-    exports.mangafire = MangaFire;
-    exports.MangaFire = MangaFire;
+// Universal top-level exports for Paperback 0.8 iOS JavaScriptCore
+var g = typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this));
+if (typeof exports === 'undefined') {
+    g.exports = g.exports || {};
 }
+var exp = typeof exports !== 'undefined' ? exports : g.exports;
 
-if (typeof globalThis !== 'undefined') {
-    globalThis.mangafireInfo = mangafireInfo;
-    globalThis.mangafire = MangaFire;
-    globalThis.MangaFire = MangaFire;
-}
+exp.mangafireInfo = mangafireInfo;
+exp.mangafire = MangaFire;
+exp.MangaFire = MangaFire;
 
-if (typeof window !== 'undefined') {
-    window.mangafireInfo = mangafireInfo;
-    window.mangafire = MangaFire;
-    window.MangaFire = MangaFire;
-}
+g.mangafireInfo = mangafireInfo;
+g.mangafire = MangaFire;
+g.MangaFire = MangaFire;
+g.Sources = g.Sources || {};
+g.Sources.mangafireInfo = mangafireInfo;
+g.Sources.mangafire = MangaFire;
+g.Sources.MangaFire = MangaFire;

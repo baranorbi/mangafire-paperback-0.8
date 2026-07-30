@@ -30,6 +30,7 @@ for (const v of versions) {
 }
 
 const versioning = {
+    "buildTime": new Date().toISOString(),
     "sources": [
         {
             "id": "mangafire",
@@ -37,11 +38,18 @@ const versioning = {
             "author": "nahamah",
             "desc": "HTML Scraper for MangaFire v1.0.12",
             "website": "https://mangafire.to",
+            "contentRating": "MATURE",
             "version": "1.0.12",
             "icon": "icon.png",
-            "tags": []
+            "tags": [],
+            "websiteBaseURL": "https://mangafire.to",
+            "intents": 21
         }
-    ]
+    ],
+    "builtWith": {
+        "toolchain": "0.8.0-alpha.47",
+        "types": "0.8.0-alpha.47"
+    }
 };
 fs.writeFileSync('versioning.json', JSON.stringify(versioning, null, 4));
 

@@ -1,4 +1,5 @@
 {
+    "buildTime": "2026-07-30T17:51:30.000Z",
     "sources": [
         {
             "id": "mangafire",
@@ -6,9 +7,16 @@
             "author": "nahamah",
             "desc": "HTML Scraper for MangaFire v1.0.12",
             "website": "https://mangafire.to",
+            "contentRating": "MATURE",
             "version": "1.0.12",
             "icon": "icon.png",
-            "tags": []
+            "tags": [],
+            "websiteBaseURL": "https://mangafire.to",
+            "intents": 21
         }
-    ]
+    ],
+    "builtWith": {
+        "toolchain": "0.8.0-alpha.47",
+        "types": "0.8.0-alpha.47"
+    }
 }

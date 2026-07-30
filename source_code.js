@@ -270,34 +270,34 @@ class MangaFire extends Source {
 
             const $ = this.cheerio.load(response.data);
 
-            const title = $('h1').first().text().trim()
+            const title = $('h1.title-detail__title, h1').first().text().trim()
                 || $('meta[property="og:title"]').attr('content')?.replace(/ - MangaFire.*/i, '').trim()
                 || cleanId.replace(/-/g, ' ');
                 
-            const image = $('img.cover, .cover img, .poster img, .manga-poster img, .title-row-card__poster img').attr('src')
+            const image = $('.title-detail__poster img, .title-detail__banner-img, img.cover, .cover img, .poster img').attr('src')
                 || $('meta[property="og:image"]').attr('content')
                 || '';
                 
-            const description = $('.description, .summary, #synopsis, .info .modal-content, .info .description').text().trim()
+            const description = $('.title-detail__synopsis p, .title-detail__synopsis, .description, .summary, #synopsis').text().replace(/Read more$/, '').trim()
                 || $('meta[property="og:description"]').attr('content')
                 || '';
 
             let status = 'ONGOING';
-            const pageText = $('body').text().toLowerCase();
-            if (pageText.includes('completed') || pageText.includes('finished')) {
+            const statusText = $('.badge--status, body').text().toLowerCase();
+            if (statusText.includes('finished') || statusText.includes('completed')) {
                 status = 'COMPLETED';
             }
 
             const authors = [];
-            $('.info a[href*="/author/"], .info span:contains("Author") + a, .info a[href*="/staff/"]').each((_, el) => {
+            $('.title-detail__credits a, .info a[href*="/author/"], .info span:contains("Author") + a').each((_, el) => {
                 const authorText = $(el).text().trim();
                 if (authorText && !authors.includes(authorText)) authors.push(authorText);
             });
 
             const tags = [];
-            $('.info a[href*="/genre/"], .info a[href*="/type/"]').each((_, el) => {
+            $('.title-detail__tags a, a.title-detail__tag, .info a[href*="/genre/"]').each((_, el) => {
                 const tagText = $(el).text().trim();
-                const tagId = $(el).attr('href')?.split('/').pop() || tagText;
+                const tagId = $(el).attr('href')?.split('=').pop() || $(el).attr('href')?.split('/').pop() || tagText;
                 if (tagText) {
                     tags.push(App.createTag({
                         id: tagId,
@@ -331,10 +331,10 @@ class MangaFire extends Source {
         const seenChapters = new Set();
 
         try {
-            $(containerSelector).find("a[href*='/read/'], .list-chapter a, ul.chapters a, li.chapter-item a, div.tab-content a").each((_, el) => {
+            $(containerSelector).find("a.title-detail__row-link, .title-detail__row a, a[href*='/chapter/'], a[href*='/read/'], .list-chapter a").each((_, el) => {
                 const $el = $(el);
                 const href = $el.attr("href") || "";
-                const text = $el.text().trim() || $el.attr("title") || "";
+                const text = $el.find('.title-detail__row-num').text().trim() || $el.text().trim() || $el.attr("title") || "";
                 
                 const numMatch = text.match(/chapter\s*(\d+\.?\d*)/i) || text.match(/\bch(?:apter)?\.?\s*(\d+\.?\d*)/i) || text.match(/(\d+\.?\d*)/);
                 const chapNum = numMatch ? parseFloat(numMatch[1]) : 0;
@@ -342,7 +342,7 @@ class MangaFire extends Source {
                 let chapId = href;
                 if (chapId.startsWith('/')) chapId = chapId.substring(1);
                 
-                if (href && href.includes('/read/') && !seenChapters.has(chapId)) {
+                if (href && (href.includes('/chapter/') || href.includes('/read/')) && !seenChapters.has(chapId)) {
                     seenChapters.add(chapId);
                     chapters.push(App.createChapter({
                         id: chapId,

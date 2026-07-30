@@ -20,6 +20,7 @@ if (fs.existsSync(tempBundlePath)) {
 }
 
 const filesToUpdate = [
+    'mangafire.js',
     'mangafire/source.js',
     'bundles/mangafire/source.js',
     'bundles/mangafire/1.0.12/source.js'
@@ -30,6 +31,19 @@ for (const f of filesToUpdate) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(f, bundledCode);
 }
+
+const indexJs = `module.exports = {
+  "name": "MangaFire.to (0.8)",
+  "sources": [
+    {
+      "id": "mangafire",
+      "name": "MangaFire",
+      "file": "mangafire.js"
+    }
+  ]
+};
+`;
+fs.writeFileSync('index.js', indexJs);
 
 const versioning = {
     "buildTime": new Date().toISOString(),
@@ -55,4 +69,4 @@ const versioning = {
 };
 fs.writeFileSync('versioning.json', JSON.stringify(versioning, null, 4));
 
-console.log("Successfully built mangafire extension v1.0.12!");
+console.log("Successfully built mangafire extension v1.0.12 across all entry points!");

@@ -1,22 +1,14 @@
 {
-    "buildTime": "2026-07-10T00:00:00.000Z",
     "sources": [
         {
             "id": "mangafire",
             "name": "MangaFire",
             "author": "nahamah",
-            "desc": "MangaFire source for Paperback 0.8",
-            "website": "https://github.com/baranorbi",
-            "contentRating": "MATURE",
-            "version": "1.0.11",
+            "desc": "HTML Scraper for MangaFire v1.0.12",
+            "website": "https://mangafire.to",
+            "version": "1.0.12",
             "icon": "icon.png",
-            "tags": [],
-            "websiteBaseURL": "https://mangafire.to",
-            "intents": 21
+            "tags": []
         }
-    ],
-    "builtWith": {
-        "toolchain": "0.8.0-alpha.47",
-        "types": "0.8.0-alpha.47"
-    }
+    ]
 }

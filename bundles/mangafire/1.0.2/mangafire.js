@@ -108,18 +108,18 @@ const BASE_URL = "https://mangafire.to";
 
 const DEFAULT_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-    'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
     'Referer': `${BASE_URL}/`
 };
 
 exports.mangafireInfo = {
-    version: '1.0.11',
+    version: '1.0.12',
     name: 'MangaFire',
     icon: 'icon.png',
     author: 'nahamah',
     authorWebsite: 'https://github.com/baranorbi',
-    description: 'MangaFire v1.0.11 for Paperback 0.8',
+    description: 'HTML Scraper for MangaFire v1.0.12',
     contentRating: types_1.ContentRating.MATURE,
     websiteBaseURL: BASE_URL,
     sourceTags: [],
@@ -130,7 +130,7 @@ class MangaFire extends types_1.Source {
     constructor() {
         super(...arguments);
         this.requestManager = App.createRequestManager({
-            requestsPerSecond: 5,
+            requestsPerSecond: 3,
             requestTimeout: 30000,
         });
     }
@@ -151,55 +151,43 @@ class MangaFire extends types_1.Source {
         return false;
     }
 
-    parseJsonResponse(data) {
-        if (typeof data === 'string') {
-            const trimmed = data.trim();
-            if (!trimmed || trimmed.startsWith('<')) {
-                return null;
-            }
-            try {
-                return JSON.parse(trimmed);
-            } catch (error) {
-                return null;
-            }
-        }
-        return data || null;
-    }
+    parseHtmlMangaList($) {
+        const mangas = [];
+        const seenIds = new Set();
 
-    parseApiMangaList(items) {
-        if (!Array.isArray(items)) return [];
-        return items.map(item => {
-            const id = item.hid || String(item.id || "");
-            const title = item.title || id;
-            const image = item.poster?.large || item.poster?.medium || item.poster?.small || "";
-            return App.createPartialSourceManga({
-                mangaId: id,
-                title: title,
-                image: image,
-                subtitle: item.type ? item.type.toUpperCase() : undefined
-            });
-        }).filter(m => m.mangaId && m.title);
+        $("div.unit, .manga-item, .card, div.original.card-lg div.unit").each((_, element) => {
+            const $el = $(element);
+            const titleEl = $el.find("div.info > a, .detail .title a, a.title, h3 a, .info > div > a").last();
+            let title = titleEl.text().trim() || $el.find("a").attr("title") || "";
+            if (!title) {
+                title = $el.find("a").text().trim();
+            }
+            
+            const posterEl = $el.find("a.poster, a[href*='/manga/']").first();
+            const href = posterEl.attr("href") || titleEl.attr("href") || "";
+
+            const idMatch = href.match(/\/manga\/([^\/?#]+)/);
+            const id = idMatch ? idMatch[1] : href.split("/").filter(Boolean).pop() || "";
+            
+            let image = $el.find("img").attr("src") || $el.find("img").attr("data-src") || "";
+
+            if (title && id && !seenIds.has(id)) {
+                seenIds.add(id);
+                mangas.push(App.createPartialSourceManga({
+                    mangaId: id,
+                    title: title,
+                    image: image,
+                }));
+            }
+        });
+        return mangas;
     }
 
     async getHomePageSections(sectionCallback) {
         const sections = [
             App.createHomeSection({
-                id: 'trending',
-                title: 'Trending Manga',
-                items: [],
-                containsMoreItems: true,
-                type: 'singleRowNormal'
-            }),
-            App.createHomeSection({
                 id: 'recently_updated',
                 title: 'Recently Updated',
-                items: [],
-                containsMoreItems: true,
-                type: 'singleRowNormal'
-            }),
-            App.createHomeSection({
-                id: 'new_releases',
-                title: 'New Releases',
                 items: [],
                 containsMoreItems: true,
                 type: 'singleRowNormal'
@@ -211,24 +199,24 @@ class MangaFire extends types_1.Source {
         }
 
         const promises = sections.map(async (section) => {
-            let path = '/top-titles';
-            if (section.id === 'recently_updated') path = '/titles?page=1';
-            if (section.id === 'new_releases') path = '/titles?page=2';
-
             try {
                 const request = App.createRequest({
-                    url: `${BASE_URL}/api${path}`,
+                    url: `${BASE_URL}/filter`,
                     method: 'GET',
                     headers: DEFAULT_HEADERS
                 });
                 const response = await this.requestManager.schedule(request, 1);
-                const json = this.parseJsonResponse(response.data);
-                if (json && Array.isArray(json.items)) {
-                    section.items = this.parseApiMangaList(json.items);
+                
+                if (response.data.includes("Just a moment...") || response.data.includes("cf-browser-verification")) {
+                    throw new Error("Cloudflare challenge detected. Please bypass Cloudflare via WebView.");
                 }
+
+                const $ = this.cheerio.load(response.data);
+                section.items = this.parseHtmlMangaList($);
                 sectionCallback(section);
             } catch (error) {
                 console.log(`Failed to load section ${section.id}:`, error);
+                throw error;
             }
         });
 
@@ -237,19 +225,21 @@ class MangaFire extends types_1.Source {
 
     async getViewMoreItems(homepageSectionId, metadata) {
         const page = metadata?.page ?? 1;
-        let path = `/titles?page=${page}`;
-        if (homepageSectionId === 'trending') path = '/top-titles';
-        if (homepageSectionId === 'new_releases') path = `/titles?page=${page + 1}`;
+        let url = `${BASE_URL}/filter?page=${page}`;
 
         const request = App.createRequest({
-            url: `${BASE_URL}/api${path}`,
+            url: url,
             method: 'GET',
             headers: DEFAULT_HEADERS
         });
 
         const response = await this.requestManager.schedule(request, 1);
-        const json = this.parseJsonResponse(response.data);
-        const mangas = json && Array.isArray(json.items) ? this.parseApiMangaList(json.items) : [];
+        if (response.data.includes("Just a moment...") || response.data.includes("cf-browser-verification")) {
+            throw new Error("Cloudflare challenge detected. Please bypass Cloudflare via WebView.");
+        }
+
+        const $ = this.cheerio.load(response.data);
+        const mangas = this.parseHtmlMangaList($);
 
         return App.createPagedResults({
             results: mangas,
@@ -260,18 +250,25 @@ class MangaFire extends types_1.Source {
     async getSearchResults(query, metadata) {
         const page = metadata?.page ?? 1;
         const keyword = query.title || "";
-        let path = `/titles?page=${page}`;
-        if (keyword) path += `&keyword=${encodeURIComponent(keyword)}`;
+        
+        let url = `${BASE_URL}/filter?page=${page}`;
+        if (keyword) {
+            url += `&keyword=${encodeURIComponent(keyword)}`;
+        }
 
         const request = App.createRequest({
-            url: `${BASE_URL}/api${path}`,
+            url: url,
             method: 'GET',
             headers: DEFAULT_HEADERS
         });
 
         const response = await this.requestManager.schedule(request, 1);
-        const json = this.parseJsonResponse(response.data);
-        const mangas = json && Array.isArray(json.items) ? this.parseApiMangaList(json.items) : [];
+        if (response.data.includes("Just a moment...") || response.data.includes("cf-browser-verification")) {
+            throw new Error("Cloudflare challenge detected. Please bypass Cloudflare via WebView.");
+        }
+
+        const $ = this.cheerio.load(response.data);
+        const mangas = this.parseHtmlMangaList($);
 
         return App.createPagedResults({
             results: mangas,
@@ -280,114 +277,130 @@ class MangaFire extends types_1.Source {
     }
 
     async getMangaDetails(mangaId) {
-        const cleanId = mangaId.replace(/^\/manga\//, '').replace(/^\/title\//, '');
+        const cleanId = mangaId.replace(/^\/manga\//, '');
+        const url = `${BASE_URL}/manga/${cleanId}`;
+        
         const request = App.createRequest({
-            url: `${BASE_URL}/api/titles/${cleanId}`,
+            url: url,
             method: 'GET',
             headers: DEFAULT_HEADERS
         });
-
+        
         const response = await this.requestManager.schedule(request, 1);
-        const json = this.parseJsonResponse(response.data);
-        const data = json?.data || {};
+        if (response.data.includes("Just a moment...") || response.data.includes("cf-browser-verification")) {
+            throw new Error("Cloudflare challenge detected. Please bypass Cloudflare via WebView.");
+        }
 
-        let status = 'ONGOING';
-        const rawStatus = (data.status || '').toLowerCase();
-        if (rawStatus.includes('finished') || rawStatus.includes('completed')) status = 'COMPLETED';
+        const $ = this.cheerio.load(response.data);
+
+        const title = $('h1').first().text().trim()
+            || $('meta[property="og:title"]').attr('content')?.replace(/ - MangaFire.*/i, '').trim()
+            || 'Unknown Title';
+            
+        const image = $('img.cover, .cover img, .poster img').attr('src')
+            || $('meta[property="og:image"]').attr('content')
+            || '';
+            
+        const description = $('.description, .summary, #synopsis, .info .modal-content').text().trim()
+            || $('meta[property="og:description"]').attr('content')
+            || '';
 
         return App.createSourceManga({
             id: mangaId,
             mangaInfo: App.createMangaInfo({
-                titles: [data.title || cleanId],
-                image: data.poster?.large || data.poster?.medium || data.poster?.small || "",
-                status: status,
-                author: data.authors?.[0]?.title || "Unknown",
-                artist: data.artists?.[0]?.title || "Unknown",
-                desc: (data.synopsisHtml || "").replace(/<[^>]*>/g, '').trim(),
+                titles: [title],
+                image: image,
+                desc: description,
+                status: 'ONGOING'
             })
         });
     }
 
     async getChapters(mangaId) {
-        const cleanId = mangaId.replace(/^\/manga\//, '').replace(/^\/title\//, '');
-
-        let langParam = 'en';
-        let url = `${BASE_URL}/api/titles/${cleanId}/chapters?limit=100&page=1&language=${langParam}`;
-        let request = App.createRequest({
+        const cleanId = mangaId.replace(/^\/manga\//, '');
+        const url = `${BASE_URL}/manga/${cleanId}`;
+        
+        const request = App.createRequest({
             url: url,
             method: 'GET',
             headers: DEFAULT_HEADERS
         });
-
-        let response = await this.requestManager.schedule(request, 1);
-        let json = this.parseJsonResponse(response.data);
-        let items = Array.isArray(json?.items) ? [...json.items] : [];
-
-        if (items.length === 0) {
-            langParam = '';
-            url = `${BASE_URL}/api/titles/${cleanId}/chapters?limit=100&page=1`;
-            request = App.createRequest({
-                url: url,
-                method: 'GET',
-                headers: DEFAULT_HEADERS
-            });
-            response = await this.requestManager.schedule(request, 1);
-            json = this.parseJsonResponse(response.data);
-            items = Array.isArray(json?.items) ? [...json.items] : [];
+        
+        const response = await this.requestManager.schedule(request, 1);
+        if (response.data.includes("Just a moment...") || response.data.includes("cf-browser-verification")) {
+            throw new Error("Cloudflare challenge detected. Please bypass Cloudflare via WebView.");
         }
 
-        const lastPage = json?.meta?.lastPage || 1;
-        if (lastPage > 1) {
-            const maxPage = Math.min(lastPage, 25);
-            const pagePromises = [];
-            for (let p = 2; p <= maxPage; p++) {
-                let pageUrl = `${BASE_URL}/api/titles/${cleanId}/chapters?limit=100&page=${p}`;
-                if (langParam) pageUrl += `&language=${langParam}`;
-                const pageReq = App.createRequest({
-                    url: pageUrl,
-                    method: 'GET',
-                    headers: DEFAULT_HEADERS
-                });
-                pagePromises.push(
-                    this.requestManager.schedule(pageReq, 1)
-                        .then(res => {
-                            const pageJson = this.parseJsonResponse(res.data);
-                            return Array.isArray(pageJson?.items) ? pageJson.items : [];
-                        })
-                        .catch(() => [])
-                );
-            }
-            const restPages = await Promise.all(pagePromises);
-            for (const pageItems of restPages) {
-                items.push(...pageItems);
-            }
-        }
+        const $ = this.cheerio.load(response.data);
 
-        const chapters = items.map(item => {
-            const chapNum = Number(item.number) || 0;
-            return App.createChapter({
-                id: String(item.id),
-                name: item.name || `Chapter ${chapNum}`,
-                chapNum: chapNum,
-                langCode: item.language || 'en',
-            });
+        const chapters = [];
+        const seenChapters = new Set();
+
+        $("a[href*='/read/'], .list-chapter a").each((_, el) => {
+            const $el = $(el);
+            const href = $el.attr("href") || "";
+            const text = $el.text().trim() || $el.attr("title") || "";
+            
+            const numMatch = text.match(/chapter\s*(\d+\.?\d*)/i) || text.match(/(\d+\.?\d*)/);
+            const chapNum = numMatch ? parseFloat(numMatch[1]) : 0;
+            
+            let chapId = href;
+            if (chapId.startsWith('/')) chapId = chapId.substring(1);
+            if (chapId.startsWith('read/')) {
+                if (href && !seenChapters.has(chapId)) {
+                    seenChapters.add(chapId);
+                    chapters.push(App.createChapter({
+                        id: chapId,
+                        name: text || `Chapter ${chapNum}`,
+                        chapNum: chapNum,
+                        langCode: 'en'
+                    }));
+                }
+            }
         });
-
-        return chapters;
+        
+        return chapters.reverse();
     }
 
     async getChapterDetails(mangaId, chapterId) {
+        let url = chapterId.startsWith("http") ? chapterId : `${BASE_URL}/${chapterId}`;
+        if (!url.includes(BASE_URL)) {
+            url = `${BASE_URL}/${chapterId}`;
+        }
+        
         const request = App.createRequest({
-            url: `${BASE_URL}/api/chapters/${chapterId}`,
+            url: url,
             method: 'GET',
             headers: DEFAULT_HEADERS
         });
-
+        
         const response = await this.requestManager.schedule(request, 1);
-        const json = this.parseJsonResponse(response.data);
-        const pages = Array.isArray(json?.data?.pages)
-            ? json.data.pages.map(p => p.url).filter(Boolean)
-            : [];
+        if (response.data.includes("Just a moment...") || response.data.includes("cf-browser-verification")) {
+            throw new Error("Cloudflare challenge detected. Please bypass Cloudflare via WebView.");
+        }
+
+        const $ = this.cheerio.load(response.data);
+
+        const pages = [];
+        $("img.page-image, .chapter-page img, img[data-src], .reader-page img").each((_, el) => {
+            let src = $(el).attr("src") || $(el).attr("data-src") || "";
+            if (src && !src.startsWith("http")) src = BASE_URL + src;
+            if (src && !pages.includes(src)) pages.push(src);
+        });
+
+        if (pages.length === 0) {
+            $('script').each((_, el) => {
+                const content = $(el).html() || "";
+                const matches = content.match(/https?:\/\/[^"'\s]+\.(?:jpg|jpeg|png|webp)/gi);
+                if (matches) {
+                    matches.forEach(imgUrl => {
+                        if (!pages.includes(imgUrl) && !imgUrl.includes("favicon") && !imgUrl.includes("logo") && !imgUrl.includes("avatar")) {
+                            pages.push(imgUrl);
+                        }
+                    });
+                }
+            });
+        }
 
         return App.createChapterDetails({
             id: chapterId,

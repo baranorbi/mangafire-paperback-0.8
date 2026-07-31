@@ -10,17 +10,22 @@
     },
     "sources": [
         {
+            "id": "MangaFire",
             "name": "MangaFire",
-            "description": "MangaFire.to extension for Paperback 0.8",
+            "author": "nahamah",
+            "desc": "MangaFire.to extension for Paperback 0.8",
+            "website": "https://mangafire.to",
+            "contentRating": "MATURE",
             "version": "1.0.16",
             "icon": "icon.png",
-            "language": "en",
-            "contentRating": "MATURE",
-            "badges": [],
-            "intents": 21,
-            "author": "nahamah",
+            "tags": [
+                {
+                    "text": "Manga",
+                    "type": "badge"
+                }
+            ],
             "websiteBaseURL": "https://mangafire.to",
-            "id": "MangaFire"
+            "intents": 21
         }
     ]
 }

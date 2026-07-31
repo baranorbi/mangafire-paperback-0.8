@@ -5,11 +5,11 @@
     "website": "https://mangafire.to",
     "sources": [
         {
-            "id": "mangafire",
+            "id": "MangaFire",
             "name": "MangaFire",
             "file": "mangafire.js",
             "author": "nahamah",
-            "version": "1.0.13"
+            "version": "1.0.14"
         }
     ]
 }

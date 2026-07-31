@@ -32,7 +32,7 @@ const indexJs = `module.exports = {
   "name": "MangaFire.to (0.8)",
   "sources": [
     {
-      "id": "MangaFire",
+      "id": "mangafire",
       "name": "MangaFire",
       "file": "mangafire.js",
       "version": "${VERSION}"
@@ -50,7 +50,7 @@ const indexJson = {
     "website": "https://mangafire.to",
     "sources": [
         {
-            "id": "MangaFire",
+            "id": "mangafire",
             "name": "MangaFire",
             "file": "mangafire.js",
             "author": "nahamah",
@@ -67,7 +67,7 @@ const versioning = {
     "buildTime": new Date().toISOString(),
     "sources": [
         {
-            "id": "MangaFire",
+            "id": "mangafire",
             "name": "MangaFire",
             "author": "nahamah",
             "desc": "MangaFire.to Extension for Paperback 0.8",

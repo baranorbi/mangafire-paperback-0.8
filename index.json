@@ -5,7 +5,7 @@
     "website": "https://mangafire.to",
     "sources": [
         {
-            "id": "MangaFire",
+            "id": "mangafire",
             "name": "MangaFire",
             "file": "mangafire.js",
             "author": "nahamah",

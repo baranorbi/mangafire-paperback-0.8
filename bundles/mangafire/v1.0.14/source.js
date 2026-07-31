@@ -635,3 +635,7 @@ if (typeof exports === 'undefined') {
 
 exports.MangaFireInfo = MangaFireInfo;
 exports.MangaFire = MangaFire;
+
+// Also export the lowercase version since the ID is mangafire
+exports.mangafireInfo = MangaFireInfo;
+exports.mangafire = MangaFire;

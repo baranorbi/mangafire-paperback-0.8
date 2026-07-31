@@ -1,8 +1,8 @@
 {
-    "buildTime": "2026-07-31T11:33:56.363Z",
+    "buildTime": "2026-07-31T12:14:24.329Z",
     "sources": [
         {
-            "id": "MangaFire",
+            "id": "mangafire",
             "name": "MangaFire",
             "author": "nahamah",
             "desc": "MangaFire.to Extension for Paperback 0.8",

@@ -1,5 +1,5 @@
 {
-    "buildTime": "2026-07-31T12:14:24.329Z",
+    "buildTime": "2026-07-31T12:16:56.387Z",
     "sources": [
         {
             "id": "mangafire",
@@ -8,7 +8,7 @@
             "desc": "MangaFire.to Extension for Paperback 0.8",
             "website": "https://mangafire.to",
             "contentRating": "MATURE",
-            "version": "1.0.14",
+            "version": "1.0.15",
             "icon": "icon.png",
             "tags": [],
             "websiteBaseURL": "https://mangafire.to",

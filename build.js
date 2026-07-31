@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = "1.0.14";
+const VERSION = "1.0.15";
 console.log(`=== BUILDING MANGAFIRE EXTENSION v${VERSION} FOR PAPERBACK 0.8 ===`);
 
 const cleanCode = fs.readFileSync('source_code.js', 'utf8');

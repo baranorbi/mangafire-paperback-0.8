@@ -18,7 +18,7 @@ const AJAX_HEADERS = {
 // named <SourceName>Info with this shape.
 // ──────────────────────────────────────────────
 const MangaFireInfo = {
-    version: '1.0.14',
+    version: '1.0.15',
     name: 'MangaFire',
     icon: 'icon.png',
     author: 'nahamah',
@@ -33,9 +33,9 @@ const MangaFireInfo = {
 // ──────────────────────────────────────────────
 // MangaFire Source Class
 // ──────────────────────────────────────────────
-class MangaFire {
+class MangaFire extends Source {
     constructor(cheerio) {
-        this.cheerio = cheerio;
+        super(cheerio);
         this.requestManager = typeof App !== 'undefined'
             ? App.createRequestManager({
                 requestsPerSecond: 3,
@@ -43,6 +43,14 @@ class MangaFire {
             })
             : null;
     }
+
+    get id() { return "mangafire"; }
+    get name() { return "MangaFire"; }
+    get icon() { return "icon.png"; }
+    get version() { return MangaFireInfo.version; }
+    get author() { return MangaFireInfo.author; }
+    get website() { return BASE_URL; }
+    get language() { return "en"; }
 
     // ── Cloudflare ────────────────────────────
     async getCloudflareBypassRequestAsync() {

@@ -5,7 +5,7 @@ module.exports = {
       "id": "mangafire",
       "name": "MangaFire",
       "file": "mangafire.js",
-      "version": "1.0.14"
+      "version": "1.0.15"
     }
   ]
 };

@@ -27,39 +27,6 @@ for (const f of filesToUpdate) {
     fs.writeFileSync(f, cleanCode);
 }
 
-// ── index.js — simple repo index ──
-const indexJs = `module.exports = {
-  "name": "MangaFire.to (0.8)",
-  "sources": [
-    {
-      "id": "mangafire",
-      "name": "MangaFire",
-      "file": "mangafire.js",
-      "version": "${VERSION}"
-    }
-  ]
-};
-`;
-fs.writeFileSync('index.js', indexJs);
-
-// ── index.json — repo metadata ──
-const indexJson = {
-    "name": "MangaFire.to (0.8)",
-    "description": "MangaFire custom source for Paperback 0.8",
-    "icon": "https://github.com/baranorbi.png",
-    "website": "https://mangafire.to",
-    "sources": [
-        {
-            "id": "mangafire",
-            "name": "MangaFire",
-            "file": "mangafire.js",
-            "author": "nahamah",
-            "version": VERSION
-        }
-    ]
-};
-fs.writeFileSync('index.json', JSON.stringify(indexJson, null, 4));
-
 // ── versioning.json — Paperback 0.8 format ──
 // The app uses this to discover and update sources.
 // Key fields: buildTime, sources[], builtWith
@@ -77,7 +44,7 @@ const versioning = {
             "icon": "icon.png",
             "tags": [],
             "websiteBaseURL": "https://mangafire.to",
-            "intents": 0x17
+            "intents": 23
         }
     ],
     "builtWith": {

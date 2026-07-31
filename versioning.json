@@ -1,14 +1,14 @@
 {
-    "buildTime": "2026-07-31T13:12:18.019Z",
+    "buildTime": "2026-07-31T13:16:43.286Z",
     "sources": [
         {
-            "id": "mangafire",
+            "id": "MangaFire",
             "name": "MangaFire",
             "author": "nahamah",
-            "desc": "MangaFire.to Extension for Paperback 0.8",
+            "desc": "MangaFire.to extension for Paperback 0.8",
             "website": "https://mangafire.to",
             "contentRating": "MATURE",
-            "version": "1.0.15",
+            "version": "1.0.16",
             "icon": "icon.png",
             "tags": [],
             "websiteBaseURL": "https://mangafire.to",
